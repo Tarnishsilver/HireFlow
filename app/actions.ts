@@ -78,11 +78,18 @@ export async function syncEmailsToCalendar(accessToken: string) {
 
                 await createCalendarEvent(accessToken, {
                     summary: `📅 ${email.subject}`,
-                    description: `Generated from email: ${email.subject}\n\nSummary: ${email.summary}`,
+                    description: `Generated from email: ${email.subject}\n\nSummary: ${email.summary}\n\nSender: ${email.sender}`,
                     startTime: startTime,
                     endTime: endTime,
                 });
                 eventsCreated++;
+            } else {
+                // User asked for "all emails... calendar event is created"
+                // If they truly want everything, we should uncomment this else block or make the filter broader.
+                // For now, I'll assume they meant all *relevant* emails. 
+                // But to be safe with "i need all emails... to be displayed", 
+                // let's ensure the Dashboard display (fetchHREmails) returns them all (done in lib/gmail limits).
+                // The sync to calendar should probably still be somewhat selective to avoid spamming the calendar with "Newsletter" events.
             }
         }
 

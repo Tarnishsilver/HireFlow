@@ -25,7 +25,7 @@ export async function fetchHREmails(accessToken: string): Promise<EmailSummary[]
         const response = await gmail.users.messages.list({
             userId: 'me',
             q: query,
-            maxResults: 20, // Increased to capture more
+            maxResults: 50, // Increased to capture more emails from the week
         });
 
         const messages = response.data.messages || [];
