@@ -66,3 +66,31 @@ export async function syncEmailsToCalendar(accessToken: string) {
         throw new Error("Failed to sync emails");
     }
 }
+
+export async function createSingleCalendarEvent(
+    accessToken: string,
+    eventDetails: {
+        summary: string;
+        description?: string;
+        startTime: string;
+        endTime: string;
+        location?: string;
+    }
+) {
+    if (!accessToken) {
+        throw new Error("Unauthorized: No Google access token provided");
+    }
+
+    try {
+        const result = await createCalendarEvent(accessToken, {
+            summary: eventDetails.summary,
+            description: eventDetails.description,
+            startTime: eventDetails.startTime,
+            endTime: eventDetails.endTime,
+        });
+        return { success: true, event: result };
+    } catch (error) {
+        console.error("Error creating calendar event:", error);
+        throw new Error("Failed to create calendar event");
+    }
+}

@@ -1,11 +1,15 @@
 import { getGmailClient } from './google';
-import { summarizeEmail } from './groq';
+import { analyzeEmail, MeetingDetails } from './groq';
 
 export interface SuggestedEvent {
     title: string;
     date_str: string;
     duration_minutes?: number;
+    attendees?: string[];
+    location?: string;
+    description?: string;
 }
+
 
 export interface EmailSummary {
     id: string;
@@ -22,18 +26,18 @@ export async function fetchHREmails(accessToken: string): Promise<EmailSummary[]
     try {
         const gmail = getGmailClient(accessToken);
 
-        // Calculate date 14 days ago
+        // Calculate date 24 hours ago
         const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 14);
-        const dateQuery = Math.floor(startDate.getTime() / 1000); // Unix timestamp for 'after' query works reliably
+        startDate.setDate(startDate.getDate() - 1);
+        const dateQuery = Math.floor(startDate.getTime() / 1000);
 
-        // Query for INBOX emails in the last 14 days
+        // Query for INBOX emails in the last 24 hours
         const query = `after:${dateQuery} in:inbox`;
 
         const res = await gmail.users.messages.list({
             userId: 'me',
             q: query,
-            maxResults: 20,
+            maxResults: 10, // Reduced to stay within Groq rate limits
         });
 
         const messages = res.data.messages || [];
@@ -67,24 +71,22 @@ export async function fetchHREmails(accessToken: string): Promise<EmailSummary[]
                     }
                 }
 
-                // Summarize using Groq
-                const summaryText = await summarizeEmail({
+                // Analyze using Groq - gets summary, category, and meeting extraction
+                const analysis = await analyzeEmail({
                     sender: from,
                     subject: subject,
                     body: body
                 });
 
-                // Simplified categorization as requested
-                const category: EmailSummary['category'] = 'Internal HR';
-
                 summaries.push({
                     id: message.id,
                     sender: from,
                     subject: subject,
-                    summary: summaryText,
-                    category: category,
+                    summary: analysis.summary,
+                    category: analysis.category,
                     timestamp: date,
-                    threadId: message.threadId || message.id
+                    threadId: message.threadId || message.id,
+                    suggested_event: analysis.suggested_event
                 });
 
             } catch (err) {

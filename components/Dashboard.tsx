@@ -4,10 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { Navbar } from './layout/Navbar';
 import { EmailPanel } from './dashboard/EmailPanel';
 import { CalendarPanel } from './dashboard/CalendarPanel';
-import { getDashboardData } from '@/app/actions';
+import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
 import { ShieldAlert, RefreshCw, Lock, LogOut } from 'lucide-react';
+import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, User, signOut, GoogleAuthProvider } from 'firebase/auth';
+import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
 
 export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
@@ -15,6 +17,7 @@ export default function DashboardPage() {
     const [data, setData] = useState<any>(null);
     const [loadingData, setLoadingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [accessToken, setAccessToken] = useState<string | null>(null);
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -47,6 +50,7 @@ export default function DashboardPage() {
             const token = credential?.accessToken;
 
             if (token) {
+                setAccessToken(token);
                 fetchData(token);
             } else {
                 throw new Error("Could not retrieve Google Access Token. Please try again.");
@@ -96,6 +100,7 @@ export default function DashboardPage() {
             const token = credential?.accessToken;
 
             if (!token) throw new Error("Failed to get access token");
+            setAccessToken(token);
 
             const res = await import('@/app/actions').then(mod => mod.syncEmailsToCalendar(token));
 
@@ -112,10 +117,52 @@ export default function DashboardPage() {
         }
     };
 
+    const handleAddToCalendar = async (email: EmailSummary) => {
+        if (!email.suggested_event) return;
+
+        try {
+            let token = accessToken;
+
+            // If we don't have a token, we need to re-authenticate
+            if (!token) {
+                const result = await signInWithPopup(auth, googleProvider);
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                token = credential?.accessToken || null;
+                if (token) setAccessToken(token);
+            }
+
+            if (!token) {
+                alert('Please sign in again to add events to calendar.');
+                return;
+            }
+
+            const event = email.suggested_event;
+            const startTime = new Date(event.date_str);
+            const durationMs = (event.duration_minutes || 60) * 60 * 1000;
+            const endTime = new Date(startTime.getTime() + durationMs);
+
+            await createSingleCalendarEvent(token, {
+                summary: event.title,
+                description: `${event.description || ''}\n\nGenerated from email: ${email.subject}\nFrom: ${email.sender}\n\nAttendees: ${event.attendees?.join(', ') || 'N/A'}`,
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                location: event.location,
+            });
+
+            alert(`✅ Added "${event.title}" to your Google Calendar!`);
+
+            // Refresh calendar data
+            if (token) fetchData(token);
+        } catch (err: any) {
+            console.error('Failed to add event:', err);
+            alert('Failed to add event to calendar: ' + err.message);
+        }
+    };
+
     if (loadingAuth) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <RefreshCw className="animate-spin text-primary" size={32} />
+                <PrismFluxLoader size={40} speed={4} />
             </div>
         );
     }
@@ -183,35 +230,32 @@ export default function DashboardPage() {
                             </div>
                         )}
 
-                        {/* Data Display */}
+                        {/* Data Display - Calendar 3/4, Emails 1/4 */}
                         {data && (
-                            <>
-                                {/* Left Panel: Email Summary */}
-                                <section className="flex-1 min-w-0 h-[calc(100vh-160px)] md:h-[calc(100vh-140px)] flex flex-col">
-                                    <div className="mb-4 flex justify-between items-center">
-                                        <h3 className="font-semibold px-1">Emails</h3>
+                            <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
+                                {/* Left Panel: Calendar (3/4 of screen) */}
+                                <section className="flex-[3] min-w-0 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                    <CalendarPanel events={data?.events || []} loading={loadingData} />
+                                </section>
+
+                                {/* Right Panel: Email Summary (1/4 of screen) */}
+                                <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                    <div className="mb-2 flex justify-between items-center">
+                                        <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
                                         <button
                                             onClick={handleSync}
                                             disabled={loadingData}
-                                            className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors font-medium flex items-center gap-1"
+                                            className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
                                         >
-                                            <RefreshCw size={12} className={loadingData ? "animate-spin" : ""} />
-                                            Sync to Calendar
+                                            <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
+                                            Sync
                                         </button>
                                     </div>
                                     <div className="flex-1 min-h-0">
-                                        <EmailPanel emails={data?.emails || []} loading={loadingData} />
+                                        <EmailPanel emails={data?.emails || []} loading={loadingData} onAddToCalendar={handleAddToCalendar} />
                                     </div>
                                 </section>
-
-                                {/* Right Panel: Calendar */}
-                                <section className="flex-1 min-w-0 h-[calc(100vh-160px)] md:h-[calc(100vh-140px)] flex flex-col">
-                                    <div className="mb-4 px-1"><h3 className="font-semibold">Calendar</h3></div>
-                                    <div className="flex-1 min-h-0">
-                                        <CalendarPanel events={data?.events || []} loading={loadingData} />
-                                    </div>
-                                </section>
-                            </>
+                            </div>
                         )}
                     </>
                 )}
