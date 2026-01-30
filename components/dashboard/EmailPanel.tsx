@@ -1,6 +1,6 @@
 import React from 'react';
 import { Mail, Clock, ExternalLink } from 'lucide-react';
-import { EmailSummary } from '@/lib/gmail';
+import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
 
 interface EmailPanelProps {
     emails: EmailSummary[];

@@ -1,72 +1,57 @@
 # HR Pulse Enterprise Dashboard
 
-A modern HR dashboard that integrates with Google Workspace (Gmail & Calendar) to rationalize recruitment and onboarding workflows.
+A modern HR dashboard that integrates with Google Workspace (Gmail) to streamline email management with AI-powered summaries.
 
 ## 🚀 Features
 
 - **Google Authentication**: Secure sign-in using Firebase Authentication with Google Provider.
-- **Gmail Scraping**: Automatically fetches and categorizes HR-related emails (Interviews, Offers, Onboarding).
-- **Calendar Integration**: Displays upcoming HR events.
-- **Email-to-Calendar Automation**: Heuristically parses emails to creating calendar events for interviews and meetings.
+- **Email Scraping**: Automatically fetches emails from your inbox.
+- **AI Summaries**: Uses Groq (LLaMA 3.1) to generate concise email summaries.
+- **Calendar Integration**: Displays upcoming events.
 
 ## 🛠 Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
 - **Authentication**: Firebase Auth (Google Sign-In)
-- **Backend API**: Server Actions (`app/actions.ts`)
-- **Google APIs**: Gmail API, Calendar API (`googleapis` library)
+- **AI**: Groq SDK (LLaMA 3.1)
+- **Google APIs**: Gmail API, Calendar API
 - **Styling**: Tailwind CSS
 
 ## 🔐 Setup & Configuration
 
-### 1. Environment Variables
+### 1. Clone & Install
 
-Create a `.env.local` file in the root directory with your Firebase configuration:
-
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```bash
+git clone <your-repo-url>
+cd <your-project-folder>
+npm install
 ```
 
-### 2. Google Cloud Platform (GCP)
-Ensure the following APIs are enabled in your GCP Project associated with Firebase:
+### 2. Environment Variables
+
+Copy `.env.local.example` to `.env.local` and fill in your values:
+
+```bash
+cp .env.local.example .env.local
+```
+
+**Required variables:**
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase configuration (from Firebase Console) |
+| `GROQ_API_KEY` | Your Groq API key (from [console.groq.com](https://console.groq.com)) |
+
+### 3. Google Cloud Platform (GCP)
+
+Ensure these APIs are enabled in your GCP Project:
 - **Gmail API**
 - **Google Calendar API**
 
-### 3. Firebase Authentication
-- Go to Firebase Console > Authentication > Sign-in method.
-- Enable **Google**.
-- Add necessary scopes to your client-side provider configuration (already handled in `app/firebase.ts`):
-  - `https://www.googleapis.com/auth/gmail.readonly`
-  - `https://www.googleapis.com/auth/calendar.readonly`
+### 4. Firebase Authentication
 
-## 🧠 How It Works
-
-### Authentication Flow
-1. User clicks **"Sign In with Google"**.
-2. Firebase popup requests consent for Gmail and Calendar access.
-3. On success, the **Google Access Token** is retrieved from the credential result.
-4. This token is passed to Server Actions to authenticate calls to the Google API on behalf of the user.
-
-### Email Scraping (`lib/gmail.ts`)
-- **Function**: `fetchHREmails(accessToken)`
-- **Logic**:
-  - Queries Gmail for messages from the **last 7 days**.
-  - Filters by keywords: `interview OR offer OR onboarding OR HR OR meeting OR schedule`.
-  - Parses headers to extract Subject, Sender, and Date.
-  - Summaries and Categories are currently generated with deterministic logic (mock AI) but designed to be replaced by an LLM.
-
-### Email-to-Calendar Automation (`app/actions.ts`)
-- **Function**: `syncEmailsToCalendar(accessToken)`
-- **Logic**:
-  1. Fetches recent HR emails.
-  2. Identifies emails with "Interview" or "Meeting" in the subject.
-  3. **Heuristic Parsing**: Currently defaults these events to specific slots (e.g., "Tomorrow at 10am") for demonstration.
-  4. Calls `createCalendarEvent` to insert them into the user's primary calendar.
+1. Go to Firebase Console > Authentication > Sign-in method
+2. Enable **Google**
+3. Make sure your domain is added to authorized domains
 
 ## 📦 Running Locally
 
@@ -74,3 +59,31 @@ Ensure the following APIs are enabled in your GCP Project associated with Fireba
 npm run dev
 # Open http://localhost:3000
 ```
+
+## 🚀 Deployment (Vercel)
+
+1. Push your code to GitHub
+2. Connect the repo to [Vercel](https://vercel.com)
+3. Add your environment variables in Vercel's dashboard
+4. Update your Firebase authorized domains to include your Vercel URL
+5. Deploy!
+
+**Important**: For production, ensure your Google Cloud OAuth authorized redirect URIs include your Vercel domain.
+
+## 📁 Project Structure
+
+```
+├── app/                # Next.js App Router
+│   ├── actions.ts      # Server Actions
+│   └── page.tsx        # Main dashboard page
+├── components/         # React components
+├── lib/                # Utilities
+│   ├── gmail.ts        # Gmail API integration
+│   ├── groq.ts         # Groq AI summarization
+│   └── google.ts       # Google API client
+└── public/             # Static assets
+```
+
+## 📄 License
+
+MIT

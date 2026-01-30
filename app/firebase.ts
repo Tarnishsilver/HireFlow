@@ -28,7 +28,7 @@ export const googleProvider = new GoogleAuthProvider();
 
 // Add scopes for Gmail and Calendar
 googleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
-googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/calendar');
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 
 export default app;

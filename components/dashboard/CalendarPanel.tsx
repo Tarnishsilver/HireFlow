@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { CalendarEvent } from '@/lib/calendar';
+import { CalendarEvent } from '@/lib/summarizer-scrape/calendar';
 
 interface CalendarPanelProps {
     events: CalendarEvent[];
