@@ -13,9 +13,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { getBaseUrl } from "@/lib/url";
+
 export const metadata: Metadata = {
   title: "HR Pulse | Enterprise Dashboard",
   description: "Next-generation HR management dashboard",
+  metadataBase: new URL(getBaseUrl()),
 };
 
 export default function RootLayout({

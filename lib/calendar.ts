@@ -43,6 +43,38 @@ export async function fetchHREvents(accessToken: string): Promise<CalendarEvent[
     }
 }
 
+export async function createCalendarEvent(
+    accessToken: string,
+    eventDetails: { summary: string; description?: string; startTime: string; endTime: string }
+) {
+    const calendar = getCalendarClient(accessToken);
+
+    try {
+        const event = {
+            summary: eventDetails.summary,
+            description: eventDetails.description,
+            start: {
+                dateTime: eventDetails.startTime,
+                timeZone: 'UTC', // Best to infer or default
+            },
+            end: {
+                dateTime: eventDetails.endTime,
+                timeZone: 'UTC',
+            },
+        };
+
+        const response = await calendar.events.insert({
+            calendarId: 'primary',
+            requestBody: event,
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error creating calendar event:", error);
+        throw error;
+    }
+}
+
 function determineCategory(summary: string): CalendarEvent['category'] {
     const text = summary.toLowerCase();
     if (text.includes('interview')) return 'Interview';

@@ -13,14 +13,19 @@ export interface EmailSummary {
 export async function fetchHREmails(accessToken: string): Promise<EmailSummary[]> {
     const gmail = getGmailClient(accessToken);
 
-    // Search for HR related emails from the last 14 days
-    const query = 'subject:(interview OR offer OR onboarding OR HR) after:2026/01/15';
+    // Dynamic date: 7 days ago
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const dateQuery = oneWeekAgo.toISOString().split('T')[0].replace(/-/g, '/');
+
+    // Search for HR related emails (interview, offer, meeting, schedule)
+    const query = `subject:(interview OR offer OR onboarding OR HR OR meeting OR schedule) after:${dateQuery}`;
 
     try {
         const response = await gmail.users.messages.list({
             userId: 'me',
             q: query,
-            maxResults: 10,
+            maxResults: 20, // Increased to capture more
         });
 
         const messages = response.data.messages || [];
@@ -35,7 +40,7 @@ export async function fetchHREmails(accessToken: string): Promise<EmailSummary[]
             const headers = msg.data.payload?.headers;
             const subject = headers?.find(h => h.name === 'Subject')?.value || 'No Subject';
             const from = headers?.find(h => h.name === 'From')?.value || 'Unknown Sender';
-            const date = headers?.find(h => h.name === 'Date')?.value || '';
+            const dateStr = headers?.find(h => h.name === 'Date')?.value || '';
 
             const snippet = msg.data.snippet || '';
 
@@ -49,8 +54,13 @@ export async function fetchHREmails(accessToken: string): Promise<EmailSummary[]
                 subject: subject,
                 summary: summary,
                 category: category,
-                timestamp: formatDate(date),
+                timestamp: formatDate(dateStr),
                 threadId: message.threadId!,
+                // We might want to expose the raw snippet for the calendar parser later, 
+                // but for now the interface doesn't have it. 
+                // Let's rely on the action to fetch details if needed, or update interface.
+                // For simplicity in this step, we keep the interface as is, 
+                // but we will export a helper to parse emails for calendar in the action.
             });
         }
 
