@@ -122,13 +122,7 @@ function generateSessionId(): string {
 
 export function AnimatedPolicyChat() {
     const [sessionId, setSessionId] = useState<string>("");
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: 1,
-            content: "Hello! I'm your HR Policy Assistant. Ask me anything about company policies, procedures, or guidelines.",
-            sender: "ai",
-        },
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [value, setValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -189,13 +183,7 @@ export function AnimatedPolicyChat() {
             });
 
             setSessionId(newSessionId);
-            setMessages([
-                {
-                    id: 1,
-                    content: "Session reset! I'm your HR Policy Assistant. Ask me anything about company policies, procedures, or guidelines.",
-                    sender: "ai",
-                },
-            ]);
+            setMessages([]);
             setError(null);
         } catch {
             setError("Failed to reset session. Please try again.");
@@ -265,104 +253,112 @@ export function AnimatedPolicyChat() {
                 <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/5 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
             </div>
 
-            {/* Header */}
-            <header className="relative z-10 border-b border-white/10 backdrop-blur-xl bg-black/50">
-                <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <motion.div
-                            className="p-2 rounded-xl bg-white"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", duration: 0.5 }}
-                        >
-                            <Bot className="h-6 w-6 text-black" />
-                        </motion.div>
-                        <div>
-                            <h1 className="text-xl font-semibold text-white">Policy Assistant</h1>
-                            <p className="text-sm text-white/40">Ask about HR policies & guidelines</p>
-                        </div>
-                    </div>
-                    <motion.button
-                        onClick={resetSession}
-                        disabled={isLoading}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                        <span className="text-sm">Reset</span>
-                    </motion.button>
-                </div>
-            </header>
-
             {/* Messages Area */}
             <div className="flex-1 relative z-10 overflow-y-auto">
-                <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-                    <AnimatePresence>
-                        {messages.map((message, index) => (
-                            <motion.div
-                                key={message.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className={cn(
-                                    "flex gap-4",
-                                    message.sender === "user" && "flex-row-reverse"
-                                )}
-                            >
-                                <div className={cn(
-                                    "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
-                                    message.sender === "user"
-                                        ? "bg-white text-black"
-                                        : "bg-white/10 text-white border border-white/10"
-                                )}>
-                                    {message.sender === "user" ? (
-                                        <span className="text-sm font-medium">U</span>
-                                    ) : (
-                                        <Bot className="h-4 w-4" />
-                                    )}
-                                </div>
-                                <motion.div
-                                    className={cn(
-                                        "max-w-[80%] rounded-2xl px-4 py-3",
-                                        message.sender === "user"
-                                            ? "bg-white text-black"
-                                            : "bg-white/[0.05] text-white/90 border border-white/10"
-                                    )}
-                                >
-                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                                </motion.div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-
-                    {isLoading && (
+                {messages.length === 0 && !isLoading ? (
+                    /* Welcome Screen - Top positioned with padding */
+                    <div className="h-full flex flex-col items-center pt-32 md:pt-40 px-6">
                         <motion.div
+                            className="text-center space-y-4 max-w-2xl"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="flex gap-4"
+                            transition={{ duration: 0.6, ease: "easeOut" }}
                         >
-                            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
-                                <Bot className="h-4 w-4 text-white" />
-                            </div>
-                            <div className="bg-white/[0.05] rounded-2xl px-4 py-3 border border-white/10">
-                                <TypingDots />
-                            </div>
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2, duration: 0.5 }}
+                                className="inline-block"
+                            >
+                                <h1 className="text-4xl md:text-5xl font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 pb-2">
+                                    What doubts do you have?
+                                </h1>
+                                <motion.div
+                                    className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mt-4"
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: "100%", opacity: 1 }}
+                                    transition={{ delay: 0.5, duration: 0.8 }}
+                                />
+                            </motion.div>
+                            <motion.p
+                                className="text-base text-white/50 mt-4"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                Ask about HR policies, procedures, or guidelines
+                            </motion.p>
                         </motion.div>
-                    )}
+                    </div>
+                ) : (
+                    /* Chat Messages */
+                    <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+                        <AnimatePresence>
+                            {messages.map((message, index) => (
+                                <motion.div
+                                    key={message.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className={cn(
+                                        "flex gap-4",
+                                        message.sender === "user" && "flex-row-reverse"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+                                        message.sender === "user"
+                                            ? "bg-white text-black"
+                                            : "bg-white/10 text-white border border-white/10"
+                                    )}>
+                                        {message.sender === "user" ? (
+                                            <span className="text-sm font-medium">U</span>
+                                        ) : (
+                                            <Bot className="h-4 w-4" />
+                                        )}
+                                    </div>
+                                    <motion.div
+                                        className={cn(
+                                            "max-w-[80%] rounded-2xl px-4 py-3",
+                                            message.sender === "user"
+                                                ? "bg-white text-black"
+                                                : "bg-white/[0.05] text-white/90 border border-white/10"
+                                        )}
+                                    >
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                                    </motion.div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
 
-                    {error && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-center text-white/40 text-sm"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
+                        {isLoading && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex gap-4"
+                            >
+                                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
+                                    <Bot className="h-4 w-4 text-white" />
+                                </div>
+                                <div className="bg-white/[0.05] rounded-2xl px-4 py-3 border border-white/10">
+                                    <TypingDots />
+                                </div>
+                            </motion.div>
+                        )}
 
-                    <div ref={messagesEndRef} />
-                </div>
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-center text-white/40 text-sm"
+                            >
+                                {error}
+                            </motion.div>
+                        )}
+
+                        <div ref={messagesEndRef} />
+                    </div>
+                )}
             </div>
 
             {/* Input Area */}
