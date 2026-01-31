@@ -50,21 +50,29 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Flat styling - no rounded corners */
-button,
-input,
-.rounded,
-.rounded-lg,
-.rounded-xl,
-.rounded-2xl,
-.rounded-md {
+/* Flat styling - no rounded corners (dashboard only) */
+.dashboard button,
+.dashboard input,
+.dashboard .rounded,
+.dashboard .rounded-lg,
+.dashboard .rounded-xl,
+.dashboard .rounded-2xl,
+.dashboard .rounded-md {
   border-radius: 0 !important;
 }
 
-/* Remove shadow effects */
-.shadow,
-.shadow-sm,
-.shadow-md,
-.shadow-lg {
+/* Remove shadow effects (dashboard only) */
+.dashboard .shadow,
+.dashboard .shadow-sm,
+.dashboard .shadow-md,
+.dashboard .shadow-lg {
   box-shadow: none !important;
+}
+
+/* Lab background for animated components */
+.lab-bg::before {
+  overflow: hidden;
+  max-width: 100vw;
+  max-height: 100vh;
+  box-sizing: border-box;
 }

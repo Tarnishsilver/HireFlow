@@ -168,7 +168,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20">
+        <div className="dashboard min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20">
             <Navbar user={user} onSignIn={handleLogin} onSignOut={handleLogout} />
 
             <main className="flex-1 flex flex-col md:flex-row gap-6 p-6 md:p-8 max-w-7xl mx-auto w-full overflow-hidden">
@@ -190,6 +190,15 @@ export default function DashboardPage() {
                     </div>
                 ) : (
                     <>
+                        {/* Loading Overlay for Sync Operations */}
+                        {loadingData && (
+                            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+                                <PrismFluxLoader size={60} speed={4} />
+                                <p className="mt-6 text-lg font-medium text-foreground">Syncing with Google Workspace...</p>
+                                <p className="mt-2 text-sm text-muted-foreground">Fetching emails, calendar events, and generating summaries</p>
+                            </div>
+                        )}
+
                         {/* If we are logged in but don't have data, we might need to re-sync or just show a loading state if we are fetching.
                             If we are logged in and have no data and not loading, it usually means we need to "Connect" to get the access token again 
                             because we didn't store it (it's not persisted in Firebase Auth user object).
