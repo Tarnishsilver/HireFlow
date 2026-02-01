@@ -6,12 +6,18 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
+        // The RAG API requires a company_id field
+        const requestBody = {
+            ...body,
+            company_id: body.company_id || "default",
+        };
+
         const response = await fetch(`${RAG_API_BASE}/ask`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
