@@ -150,7 +150,8 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
             setUser(firebaseUser);
 
             if (firebaseUser) {
-                // First check local storage for role
+                // Only check local storage for role - DO NOT auto-sync from database
+                // This ensures new users see the role selection screen
                 const storedRole = localStorage.getItem(`${ROLE_STORAGE_KEY}_${firebaseUser.uid}`) as UserRole;
 
                 if (storedRole) {
@@ -164,29 +165,7 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
                         role: storedRole,
                     });
                 }
-
-                // Try to fetch from database (non-blocking)
-                try {
-                    const idToken = await firebaseUser.getIdToken();
-                    const response = await fetch('/api/auth/sync-user', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${idToken}`,
-                        },
-                        body: JSON.stringify({}),
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        setDbUser(data.user);
-                        setRoleState(data.user.role);
-                        // Update local storage
-                        localStorage.setItem(`${ROLE_STORAGE_KEY}_${firebaseUser.uid}`, data.user.role);
-                    }
-                } catch (err) {
-                    console.log('Database not available, using local role');
-                }
+                // If no stored role, role remains null -> role selection screen will show
             } else {
                 setDbUser(null);
                 setRoleState(null);

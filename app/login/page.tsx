@@ -41,6 +41,14 @@ export default function LoginPage() {
     // If user is logged in but doesn't have a role, show role selection
     const needsRoleSelection = user && !role && !loading;
 
+    // DEBUG: Log auth state for troubleshooting
+    console.log('[LoginPage] Auth State:', {
+        user: !!user,
+        role,
+        loading,
+        needsRoleSelection
+    });
+
     const handleRoleSelect = async (selectedRoleValue: 'HR' | 'CANDIDATE') => {
         setSubmitting(true);
         setError(null);
