@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -113,8 +115,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                             <div className="flex items-center gap-2 mb-2">
                                 <span
                                     className={`px-2 py-0.5 text-xs font-medium rounded-full ${job.status === 'LIVE'
-                                            ? 'bg-green-500/10 text-green-600'
-                                            : 'bg-red-500/10 text-red-600'
+                                        ? 'bg-green-500/10 text-green-600'
+                                        : 'bg-red-500/10 text-red-600'
                                         }`}
                                 >
                                     {job.status}

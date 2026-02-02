@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/job/list - Public endpoint to list all LIVE jobs
 export async function GET(request: NextRequest) {
     try {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // Verify Firebase ID token (simplified - in production use firebase-admin)
 async function verifyFirebaseToken(authHeader: string | null): Promise<{ uid: string; email: string; name?: string } | null> {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
