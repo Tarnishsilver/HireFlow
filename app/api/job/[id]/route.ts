@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +8,8 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { default: getPrisma } = await import('@/lib/prisma');
+        const prisma = getPrisma();
         const { id } = await params;
 
         const job = await prisma.jobOpening.findUnique({

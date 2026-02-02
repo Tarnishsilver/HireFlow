@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/job/list - Public endpoint to list all LIVE jobs
 export async function GET(request: NextRequest) {
     try {
+        const { default: getPrisma } = await import('@/lib/prisma');
+        const prisma = getPrisma();
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status') || 'LIVE';
         const createdBy = searchParams.get('created_by');

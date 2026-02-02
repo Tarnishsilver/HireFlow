@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +36,8 @@ async function verifyFirebaseToken(authHeader: string | null): Promise<{ uid: st
 
 export async function POST(request: NextRequest) {
     try {
+        const { default: getPrisma } = await import('@/lib/prisma');
+        const prisma = getPrisma();
         // Verify the Firebase token
         const authHeader = request.headers.get('Authorization');
         const tokenData = await verifyFirebaseToken(authHeader);
