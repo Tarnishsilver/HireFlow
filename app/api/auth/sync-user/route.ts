@@ -63,13 +63,19 @@ export async function POST(request: NextRequest) {
                 });
             }
         } else {
-            // Create new user
+            // If no role is provided and user doesn't exist, DO NOT create
+            // This forces the frontend to show role selection
+            if (!role) {
+                return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            }
+
+            // Create new user only if role is provided
             user = await prisma.user.create({
                 data: {
                     firebase_uid: tokenData.uid,
                     email: tokenData.email,
                     name: tokenData.name || null,
-                    role: role || 'CANDIDATE',
+                    role: role,
                 },
             });
         }
