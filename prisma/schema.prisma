@@ -1,0 +1,82 @@
+// Prisma schema for HR Tech Application
+// Pure PostgreSQL - compatible with any provider (Neon, Railway, RDS, etc.)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User roles enum
+enum UserRole {
+  HR
+  CANDIDATE
+}
+
+// Job status enum
+enum JobStatus {
+  DRAFT
+  LIVE
+  CLOSED
+}
+
+// User model - stores Firebase user metadata
+model User {
+  id           String   @id @default(uuid())
+  firebase_uid String   @unique
+  email        String   @unique
+  name         String?
+  role         UserRole @default(CANDIDATE)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  job_openings JobOpening[]
+
+  @@map("users")
+}
+
+// Job Opening model
+model JobOpening {
+  id               String    @id @default(uuid())
+  title            String
+  company_name     String
+  location         String
+  job_type         String    // Full-time, Part-time, Contract, Internship
+  experience_level String    // Entry, Mid, Senior, Lead
+  description      String    @db.Text
+  responsibilities String[]  // Array of responsibilities
+  required_skills  String[]  // Array of required skills
+  preferred_skills String[]  // Array of preferred skills
+  stipend          String?   // Salary/Stipend range
+  status           JobStatus @default(LIVE)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  // Relations
+  created_by    String
+  creator       User          @relation(fields: [created_by], references: [id])
+  applications  Application[]
+
+  @@map("job_openings")
+}
+
+// Application model
+model Application {
+  id              String   @id @default(uuid())
+  candidate_name  String
+  candidate_email String
+  resume_url      String
+  github_url      String?
+  portfolio_url   String?
+  created_at      DateTime @default(now())
+
+  // Relations
+  job_id String
+  job    JobOpening @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@map("applications")
+}
