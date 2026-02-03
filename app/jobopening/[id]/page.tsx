@@ -245,6 +245,27 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         </div>
                     </section>
                 )}
+
+                {/* Contact Section */}
+                {job.creator?.email && (
+                    <section className="bg-card border border-border rounded-xl p-6 mb-24 sm:mb-6">
+                        <h2 className="text-lg font-semibold mb-4">Contact Hiring Team</h2>
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium">Hiring Manager</p>
+                                <a
+                                    href={`mailto:${job.creator.email}`}
+                                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                    {job.creator.email}
+                                </a>
+                            </div>
+                        </div>
+                    </section>
+                )}
             </main>
         </div>
     );
