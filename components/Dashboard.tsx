@@ -4,12 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { Navbar } from './layout/Navbar';
 import { EmailPanel } from './dashboard/EmailPanel';
 import { CalendarPanel } from './dashboard/CalendarPanel';
+import { CandidatesPanel } from './dashboard/CandidatesPanel';
 import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
-import { ShieldAlert, RefreshCw, Lock, LogOut } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Lock, LogOut, Users } from 'lucide-react';
 import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, User, signOut, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
@@ -18,6 +20,9 @@ export default function DashboardPage() {
     const [loadingData, setLoadingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [applications, setApplications] = useState<any[]>([]);
+    const [loadingApplications, setLoadingApplications] = useState(false);
+    const { user: authUser } = useAuth();
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -79,6 +84,37 @@ export default function DashboardPage() {
             setLoadingData(false);
         }
     };
+
+    // Fetch applications for HR users
+    const fetchApplications = async () => {
+        if (!authUser) return;
+
+        setLoadingApplications(true);
+        try {
+            const idToken = await authUser.getIdToken();
+            const response = await fetch('/api/applications', {
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setApplications(data.applications || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch applications:', err);
+        } finally {
+            setLoadingApplications(false);
+        }
+    };
+
+    // Fetch applications when authUser changes
+    useEffect(() => {
+        if (authUser) {
+            fetchApplications();
+        }
+    }, [authUser]);
 
     const handleSync = async () => {
         if (!user) return;
@@ -239,12 +275,33 @@ export default function DashboardPage() {
                             </div>
                         )}
 
-                        {/* Data Display - Calendar 3/4, Emails 1/4 */}
+                        {/* Data Display - Calendar 2/4, Candidates 1/4, Emails 1/4 */}
                         {data && (
                             <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
-                                {/* Left Panel: Calendar (3/4 of screen) */}
-                                <section className="flex-[3] min-w-0 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                {/* Left Panel: Calendar (2/4 of screen) */}
+                                <section className="flex-[2] min-w-0 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
                                     <CalendarPanel events={data?.events || []} loading={loadingData} />
+                                </section>
+
+                                {/* Middle Panel: Candidates (1/4 of screen) */}
+                                <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                    <div className="mb-2 flex justify-between items-center">
+                                        <h3 className="font-bold text-xs uppercase tracking-wider px-1 flex items-center gap-1">
+                                            <Users size={12} />
+                                            Candidates
+                                        </h3>
+                                        <button
+                                            onClick={fetchApplications}
+                                            disabled={loadingApplications}
+                                            className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
+                                        >
+                                            <RefreshCw size={10} className={loadingApplications ? "animate-spin" : ""} />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 min-h-0">
+                                        <CandidatesPanel applications={applications} loading={loadingApplications} />
+                                    </div>
                                 </section>
 
                                 {/* Right Panel: Email Summary (1/4 of screen) */}

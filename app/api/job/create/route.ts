@@ -102,6 +102,27 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Parse JD with ATS API (non-blocking)
+        try {
+            const { parseJobDescription } = await import('@/lib/ats/client');
+            const atsResult = await parseJobDescription(description);
+
+            // Update job with ATS parsing results
+            await prisma.jobOpening.update({
+                where: { id: job.id },
+                data: {
+                    jd_hard_requirements: atsResult.hard_requirements,
+                    jd_preferred_skills: atsResult.preferred_skills,
+                    jd_skill_normalization: atsResult.skill_normalization,
+                },
+            });
+
+            console.log(`ATS JD parsing successful for job ${job.id}`);
+        } catch (atsError: any) {
+            // Log error but don't fail job creation
+            console.error('ATS JD parsing failed:', atsError.message);
+        }
+
         return NextResponse.json({ job }, { status: 201 });
     } catch (error: any) {
         console.error('Create job error:', error);

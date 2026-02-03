@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ArrowLeft, Loader2, Upload, CheckCircle, X } from 'lucide-react';
+import { storage } from '@/app/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Job {
     id: string;
@@ -100,26 +102,26 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
         setResumeFile(file);
         setError(null);
 
-        // Upload file
+        // Upload file to Firebase Storage
         setUploading(true);
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('folder', 'resumes');
+            // Create unique filename
+            const timestamp = Date.now();
+            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const filename = `resumes/${timestamp}-${sanitizedName}`;
 
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
+            // Create storage reference
+            const storageRef = ref(storage, filename);
 
-            const data = await response.json();
+            // Upload file
+            await uploadBytes(storageRef, file);
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Upload failed');
-            }
+            // Get download URL
+            const downloadUrl = await getDownloadURL(storageRef);
 
-            setResumeUrl(data.url);
+            setResumeUrl(downloadUrl);
         } catch (err: any) {
+            console.error('Upload error:', err);
             setError(err.message || 'Failed to upload resume');
             setResumeFile(null);
         } finally {

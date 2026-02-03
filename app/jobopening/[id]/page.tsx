@@ -145,6 +145,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                                 <Users className="h-4 w-4" />
                                 <span>{job._count.applications} applications</span>
                             </div>
+                            {role === 'HR' && job._count.applications > 0 && (
+                                <Link
+                                    href={`/applications/${job.id}`}
+                                    className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors"
+                                >
+                                    View Applications
+                                </Link>
+                            )}
                         </div>
                     </div>
 

@@ -57,6 +57,11 @@ model JobOpening {
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
+  // ATS JD Parsing Results
+  jd_hard_requirements String[]  @default([]) // Hard requirements from ATS parsing
+  jd_preferred_skills  String[]  @default([]) // Preferred skills from ATS parsing
+  jd_skill_normalization Json?                // Skill normalization mapping
+
   // Relations
   created_by    String
   creator       User          @relation(fields: [created_by], references: [id])
@@ -74,6 +79,12 @@ model Application {
   github_url      String?
   portfolio_url   String?
   created_at      DateTime @default(now())
+
+  // ATS Scoring Results
+  ats_score          Int?      // ATS score (0-100)
+  ats_decision       String?   // Decision: "Accept", "Reject", etc.
+  ats_missing_skills String[]  @default([]) // Missing skills identified
+  ats_reasons        String[]  @default([]) // Reasons for the score
 
   // Relations
   job_id String

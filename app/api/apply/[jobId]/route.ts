@@ -104,10 +104,46 @@ export async function POST(
                     select: {
                         title: true,
                         company_name: true,
+                        description: true,
                     },
                 },
             },
         });
+
+        // Score resume with ATS API (non-blocking)
+        try {
+            const { scoreResume, downloadFileAsBuffer } = await import('@/lib/ats/client');
+
+            // Download resume PDF from Firebase Storage
+            const resumeBuffer = await downloadFileAsBuffer(resume_url);
+
+            // Extract filename from URL or use default
+            const urlParts = resume_url.split('/');
+            const filename = urlParts[urlParts.length - 1] || 'resume.pdf';
+
+            // Score the resume
+            const atsResult = await scoreResume(
+                application.job.description,
+                resumeBuffer,
+                filename
+            );
+
+            // Update application with ATS scoring results
+            await prisma.application.update({
+                where: { id: application.id },
+                data: {
+                    ats_score: atsResult.score,
+                    ats_decision: atsResult.decision,
+                    ats_missing_skills: atsResult.missing,
+                    ats_reasons: atsResult.reasons,
+                },
+            });
+
+            console.log(`ATS resume scoring successful for application ${application.id}: ${atsResult.score}`);
+        } catch (atsError: any) {
+            // Log error but don't fail application submission
+            console.error('ATS resume scoring failed:', atsError.message);
+        }
 
         return NextResponse.json({ application }, { status: 201 });
     } catch (error: any) {
