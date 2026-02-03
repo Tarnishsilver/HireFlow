@@ -51,9 +51,15 @@ export async function parseJobDescription(jdText: string): Promise<JDParseRespon
     });
 
     if (!response.ok) {
-        const errorData: ATSError = await response.json().catch(() => ({}));
-        console.error('ATS JD parsing failed:', errorData);
-        throw new Error(`ATS JD parsing failed: ${response.status}`);
+        let errorDetail = '';
+        try {
+            const errorData = await response.json();
+            errorDetail = JSON.stringify(errorData);
+        } catch (e) {
+            errorDetail = await response.text().catch(() => 'No response body');
+        }
+        console.error(`ATS JD parsing failed with status ${response.status}:`, errorDetail);
+        throw new Error(`ATS JD parsing failed: ${response.status} - ${errorDetail}`);
     }
 
     return response.json();
@@ -83,12 +89,12 @@ export async function scoreResume(
 
     // Convert Buffer or Blob to Blob for FormData
     let pdfBlob: Blob;
-    if (resumePdfBlob instanceof Buffer) {
+    if (Buffer.isBuffer(resumePdfBlob)) {
         // Node.js environment - convert Buffer to Blob
         pdfBlob = new Blob([new Uint8Array(resumePdfBlob)], { type: 'application/pdf' });
     } else {
-        // Already a Blob
-        pdfBlob = resumePdfBlob;
+        // It's a Blob
+        pdfBlob = resumePdfBlob as Blob;
     }
 
     formData.append('resume_pdf', pdfBlob, resumeFilename);
@@ -99,9 +105,15 @@ export async function scoreResume(
     });
 
     if (!response.ok) {
-        const errorData: ATSError = await response.json().catch(() => ({}));
-        console.error('ATS resume scoring failed:', errorData);
-        throw new Error(`ATS resume scoring failed: ${response.status}`);
+        let errorDetail = '';
+        try {
+            const errorData = await response.json();
+            errorDetail = JSON.stringify(errorData);
+        } catch (e) {
+            errorDetail = await response.text().catch(() => 'No response body');
+        }
+        console.error(`ATS resume scoring failed with status ${response.status}:`, errorDetail);
+        throw new Error(`ATS resume scoring failed: ${response.status} - ${errorDetail}`);
     }
 
     return response.json();

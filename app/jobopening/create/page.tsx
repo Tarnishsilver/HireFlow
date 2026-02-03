@@ -82,7 +82,7 @@ export default function CreateJobPage() {
                 throw new Error(data.error || 'Failed to create job');
             }
 
-            router.push('/dashboard');
+            router.push('/dashboard?tab=jobs');
         } catch (err: any) {
             setError(err.message || 'Failed to create job');
         } finally {

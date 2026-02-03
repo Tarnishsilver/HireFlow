@@ -8,14 +8,17 @@ export async function GET(request: NextRequest) {
         const { default: getPrisma } = await import('@/lib/prisma');
         const prisma = getPrisma();
         const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status') || 'LIVE';
+        const status = searchParams.get('status');
         const createdBy = searchParams.get('created_by');
 
         const whereClause: any = {};
 
-        // Filter by status (default to LIVE for public)
+        // Filter by status (default to LIVE for public view, but allow all for HR dashboard)
         if (status) {
             whereClause.status = status;
+        } else if (!createdBy) {
+            // Only default to LIVE if not viewing specific creator's jobs (public view)
+            whereClause.status = 'LIVE';
         }
 
         // Filter by creator (for HR dashboard)

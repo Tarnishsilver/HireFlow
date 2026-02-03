@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { EmailPanel } from '@/components/dashboard/EmailPanel';
@@ -32,7 +32,7 @@ interface Job {
 
 type DashboardTab = 'overview' | 'jobs';
 
-export default function HRDashboardPage() {
+function DashboardContent() {
     const router = useRouter();
     const { user, dbUser, role, loading, signOut } = useAuth();
 
@@ -46,8 +46,19 @@ export default function HRDashboardPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loadingJobs, setLoadingJobs] = useState(true);
 
+    const searchParams = useSearchParams();
+    const defaultTab = searchParams.get('tab') as DashboardTab || 'overview';
+
     // Tab state
     const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+
+    // Sync state with URL
+    useEffect(() => {
+        const tab = searchParams.get('tab') as DashboardTab;
+        if (tab && (tab === 'overview' || tab === 'jobs')) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     // Protect route - redirect if not HR
     useEffect(() => {
@@ -217,8 +228,8 @@ export default function HRDashboardPage() {
                                 <button
                                     onClick={() => setActiveTab('overview')}
                                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview'
-                                            ? 'bg-background shadow text-foreground'
-                                            : 'text-muted-foreground hover:text-foreground'
+                                        ? 'bg-background shadow text-foreground'
+                                        : 'text-muted-foreground hover:text-foreground'
                                         }`}
                                 >
                                     <Calendar className="h-4 w-4 inline mr-1.5" />
@@ -227,8 +238,8 @@ export default function HRDashboardPage() {
                                 <button
                                     onClick={() => setActiveTab('jobs')}
                                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'jobs'
-                                            ? 'bg-background shadow text-foreground'
-                                            : 'text-muted-foreground hover:text-foreground'
+                                        ? 'bg-background shadow text-foreground'
+                                        : 'text-muted-foreground hover:text-foreground'
                                         }`}
                                 >
                                     <Briefcase className="h-4 w-4 inline mr-1.5" />
@@ -269,8 +280,8 @@ export default function HRDashboardPage() {
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'overview'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-muted-foreground'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground'
                             }`}
                     >
                         Overview
@@ -278,8 +289,8 @@ export default function HRDashboardPage() {
                     <button
                         onClick={() => setActiveTab('jobs')}
                         className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'jobs'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-muted-foreground'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground'
                             }`}
                     >
                         Jobs ({jobs.length})
@@ -405,10 +416,10 @@ export default function HRDashboardPage() {
                                             </div>
                                             <span
                                                 className={`px-2 py-0.5 text-xs font-medium rounded-full ${job.status === 'LIVE'
-                                                        ? 'bg-green-500/10 text-green-600'
-                                                        : job.status === 'CLOSED'
-                                                            ? 'bg-red-500/10 text-red-600'
-                                                            : 'bg-yellow-500/10 text-yellow-600'
+                                                    ? 'bg-green-500/10 text-green-600'
+                                                    : job.status === 'CLOSED'
+                                                        ? 'bg-red-500/10 text-red-600'
+                                                        : 'bg-yellow-500/10 text-yellow-600'
                                                     }`}
                                             >
                                                 {job.status}
@@ -427,17 +438,22 @@ export default function HRDashboardPage() {
                                         </div>
 
                                         <div className="flex items-center justify-between pt-3 border-t border-border">
-                                            <div className="flex items-center gap-1.5 text-sm">
-                                                <Users className="h-4 w-4 text-muted-foreground" />
-                                                <span className="font-medium">{job._count?.applications || 0}</span>
-                                                <span className="text-muted-foreground">applications</span>
-                                            </div>
                                             <Link
-                                                href={`/jobopening/${job.id}`}
-                                                className="text-sm text-primary font-medium hover:underline"
+                                                href={`/applications/${job.id}`}
+                                                className="flex items-center gap-1.5 text-sm hover:underline group"
                                             >
-                                                View
+                                                <Users className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                <span className="font-medium group-hover:text-primary transition-colors">{job._count?.applications || 0}</span>
+                                                <span className="text-muted-foreground group-hover:text-primary transition-colors">applications</span>
                                             </Link>
+                                            <div className="flex items-center gap-3">
+                                                <Link
+                                                    href={`/jobopening/${job.id}`}
+                                                    className="text-sm text-primary font-medium hover:underline"
+                                                >
+                                                    Details
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -460,5 +476,17 @@ export default function HRDashboardPage() {
                 <div className="ml-auto">© 2026 HR Pulse Enterprise</div>
             </footer>
         </div>
+    );
+}
+
+export default function HRDashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        }>
+            <DashboardContent />
+        </Suspense>
     );
 }
