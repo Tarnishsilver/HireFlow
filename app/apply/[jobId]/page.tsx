@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ArrowLeft, Loader2, Upload, CheckCircle, X } from 'lucide-react';
-import { storage } from '@/app/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// import { storage } from '@/app/firebase';
+// import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Job {
     id: string;
@@ -102,24 +102,29 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
         setResumeFile(file);
         setError(null);
 
-        // Upload file to Firebase Storage
+        // Upload file via Proxy API to bypass CORS
         setUploading(true);
         try {
-            // Create unique filename
-            const timestamp = Date.now();
-            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-            const filename = `resumes/${timestamp}-${sanitizedName}`;
+            const token = await user?.getIdToken();
+            if (!token) throw new Error('You must be logged in to upload');
 
-            // Create storage reference
-            const storageRef = ref(storage, filename);
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('token', token);
+            formData.append('folder', 'resumes');
 
-            // Upload file
-            await uploadBytes(storageRef, file);
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
 
-            // Get download URL
-            const downloadUrl = await getDownloadURL(storageRef);
+            const data = await response.json();
 
-            setResumeUrl(downloadUrl);
+            if (!response.ok) {
+                throw new Error(data.error || 'Upload failed');
+            }
+
+            setResumeUrl(data.url);
         } catch (err: any) {
             console.error('Upload error:', err);
             setError(err.message || 'Failed to upload resume');

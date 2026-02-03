@@ -1,97 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { existsSync } from 'fs';
 
-/**
- * Storage abstraction layer
- * Currently uses local file storage, but can be easily switched to S3/Cloudinary
- * by implementing a different storage adapter
- */
-
-interface UploadResult {
-    url: string;
-    filename: string;
-}
-
-// Local storage implementation
-async function saveToLocalStorage(
-    file: File,
-    folder: string = 'resumes'
-): Promise<UploadResult> {
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Create unique filename
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filename = `${timestamp}-${originalName}`;
-
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
-    if (!existsSync(uploadDir)) {
-        await mkdir(uploadDir, { recursive: true });
-    }
-
-    // Save file
-    const filepath = path.join(uploadDir, filename);
-    await writeFile(filepath, buffer);
-
-    // Return public URL
-    const url = `/uploads/${folder}/${filename}`;
-
-    return { url, filename };
-}
-
-// POST /api/upload - Handle file uploads
+// POST /api/upload - Handle file uploads via Proxy to Firebase Storage (Bypasses CORS)
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
+        const token = formData.get('token') as string | null;
         const folder = (formData.get('folder') as string) || 'resumes';
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Validate file type for resumes
-        if (folder === 'resumes') {
-            const allowedTypes = [
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ];
-
-            if (!allowedTypes.includes(file.type)) {
-                return NextResponse.json(
-                    { error: 'Invalid file type. Please upload PDF or DOC/DOCX files.' },
-                    { status: 400 }
-                );
-            }
-
-            // Max file size: 5MB
-            const maxSize = 5 * 1024 * 1024;
-            if (file.size > maxSize) {
-                return NextResponse.json(
-                    { error: 'File too large. Maximum size is 5MB.' },
-                    { status: 400 }
-                );
-            }
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
         }
 
-        // Save file using storage adapter (currently local)
-        const result = await saveToLocalStorage(file, folder);
+        // Validate file type (basic validation)
+        const allowedTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            return NextResponse.json(
+                { error: 'Invalid file type. Please upload PDF or DOC/DOCX files.' },
+                { status: 400 }
+            );
+        }
+
+        // Configuration
+        const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+        if (!bucket) {
+            throw new Error('Firebase Storage Bucket not configured');
+        }
+
+        // Create unique filename
+        const timestamp = Date.now();
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${folder}/${timestamp}-${sanitizedName}`;
+        const encodedFilename = encodeURIComponent(filename);
+
+        // Firebase Storage REST API URL
+        const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?name=${encodedFilename}`;
+
+        // Upload to Firebase via REST
+        // We forward the ID token for authentication
+        const firebaseResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': file.type,
+            },
+            body: file, // Next.js/Node fetch supports File/Blob body
+        });
+
+        if (!firebaseResponse.ok) {
+            const errorText = await firebaseResponse.text();
+            console.error('Firebase Storage Upload Failed:', errorText);
+            throw new Error(`Firebase Storage Error: ${firebaseResponse.statusText}`);
+        }
+
+        const data = await firebaseResponse.json();
+
+        // Construct public download URL
+        // Format: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<name>?alt=media&token=<token>
+        // The REST response returns metadata. We can use the media link or construct one.
+        // We'll use the standard download URL format which usually requires the download token (different from auth token).
+        // The upload response contains `downloadTokens`.
+
+        const downloadToken = data.downloadTokens;
+        const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedFilename}?alt=media&token=${downloadToken}`;
 
         return NextResponse.json({
-            url: result.url,
-            filename: result.filename,
+            url: publicUrl,
+            filename: filename,
         });
+
     } catch (error: any) {
         console.error('Upload error:', error);
         return NextResponse.json(
-            { error: 'Failed to upload file' },
+            { error: error.message || 'Failed to upload file' },
             { status: 500 }
         );
     }
