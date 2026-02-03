@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -15,8 +15,11 @@ import { Briefcase, Users, Mail, Lock, User, Loader2 } from 'lucide-react';
 type AuthMode = 'login' | 'register';
 type RoleSelection = 'HR' | 'CANDIDATE' | null;
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectPath = searchParams.get('redirect');
+
     const { user, role, loading, setRole } = useAuth();
 
     const [mode, setMode] = useState<AuthMode>('login');
@@ -30,13 +33,15 @@ export default function LoginPage() {
     // Redirect if already logged in with role
     useEffect(() => {
         if (!loading && user && role) {
-            if (role === 'HR') {
+            if (redirectPath) {
+                router.push(redirectPath);
+            } else if (role === 'HR') {
                 router.push('/dashboard');
             } else {
                 router.push('/jobopening');
             }
         }
-    }, [user, role, loading, router]);
+    }, [user, role, loading, router, redirectPath]);
 
     // If user is logged in but doesn't have a role, show role selection
     const needsRoleSelection = user && !role && !loading;
@@ -55,7 +60,9 @@ export default function LoginPage() {
 
         try {
             await setRole(selectedRoleValue);
-            if (selectedRoleValue === 'HR') {
+            if (redirectPath) {
+                router.push(redirectPath);
+            } else if (selectedRoleValue === 'HR') {
                 router.push('/dashboard');
             } else {
                 router.push('/jobopening');
@@ -88,7 +95,10 @@ export default function LoginPage() {
 
                 // Set user role
                 await setRole(selectedRole);
-                if (selectedRole === 'HR') {
+
+                if (redirectPath) {
+                    router.push(redirectPath);
+                } else if (selectedRole === 'HR') {
                     router.push('/dashboard');
                 } else {
                     router.push('/jobopening');
@@ -96,7 +106,7 @@ export default function LoginPage() {
             } else {
                 // Login
                 await signInWithEmailAndPassword(auth, email, password);
-                // The auth state change will trigger the redirect
+                // The auth state change will trigger the redirect via useEffect
             }
         } catch (err: any) {
             console.error('Auth error:', err);
@@ -391,5 +401,18 @@ export default function LoginPage() {
                 </p>
             </div>
         </div>
+
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }
