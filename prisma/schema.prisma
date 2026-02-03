@@ -92,3 +92,14 @@ model Application {
 
   @@map("applications")
 }
+
+// File model to store binary data directly in Postgres
+model File {
+  id         String   @id @default(uuid())
+  filename   String
+  mime_type  String
+  data       Bytes
+  created_at DateTime @default(now())
+
+  @@map("files")
+}

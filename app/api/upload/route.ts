@@ -2,23 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/upload - Handle file uploads via Proxy to Firebase Storage (Bypasses CORS)
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
-        const token = formData.get('token') as string | null;
-        const folder = (formData.get('folder') as string) || 'resumes';
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        if (!token) {
-            return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
-        }
-
-        // Validate file type (basic validation)
+        // Validate file type
         const allowedTypes = [
             'application/pdf',
             'application/msword',
@@ -32,58 +25,39 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Configuration
-        const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-        if (!bucket) {
-            throw new Error('Firebase Storage Bucket not configured');
-        }
+        // Convert file to Buffer for DB storage
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
 
-        // Create unique filename
-        const timestamp = Date.now();
-        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filename = `${folder}/${timestamp}-${sanitizedName}`;
-        const encodedFilename = encodeURIComponent(filename);
+        // Save to Database (Neon Postgres)
+        // Dynamically import prisma to ensure fresh instance
+        const { default: getPrisma } = await import('@/lib/prisma');
+        const prisma = getPrisma();
 
-        // Firebase Storage REST API URL
-        const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?name=${encodedFilename}`;
+        // Use 'any' type for prisma.file if types aren't generated yet (due to dev server lock)
+        // This prevents build errors during the transition
+        const prismaAny = prisma as any;
 
-        // Upload to Firebase via REST
-        // We forward the ID token for authentication
-        const firebaseResponse = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': file.type,
+        const savedFile = await prismaAny.file.create({
+            data: {
+                filename: file.name,
+                mime_type: file.type,
+                data: buffer,
             },
-            body: file, // Next.js/Node fetch supports File/Blob body
         });
 
-        if (!firebaseResponse.ok) {
-            const errorText = await firebaseResponse.text();
-            console.error('Firebase Storage Upload Failed:', errorText);
-            throw new Error(`Firebase Storage Error: ${firebaseResponse.statusText}`);
-        }
-
-        const data = await firebaseResponse.json();
-
-        // Construct public download URL
-        // Format: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<name>?alt=media&token=<token>
-        // The REST response returns metadata. We can use the media link or construct one.
-        // We'll use the standard download URL format which usually requires the download token (different from auth token).
-        // The upload response contains `downloadTokens`.
-
-        const downloadToken = data.downloadTokens;
-        const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedFilename}?alt=media&token=${downloadToken}`;
+        // Return URL to serve the file
+        const url = `/api/file/${savedFile.id}`;
 
         return NextResponse.json({
-            url: publicUrl,
-            filename: filename,
+            url: url,
+            filename: file.name,
         });
 
     } catch (error: any) {
-        console.error('Upload error:', error);
+        console.error('Upload to DB error:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to upload file' },
+            { error: 'Failed to upload file to database' },
             { status: 500 }
         );
     }

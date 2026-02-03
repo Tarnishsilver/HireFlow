@@ -114,8 +114,30 @@ export async function POST(
         try {
             const { scoreResume, downloadFileAsBuffer } = await import('@/lib/ats/client');
 
-            // Download resume PDF from Firebase Storage
-            const resumeBuffer = await downloadFileAsBuffer(resume_url);
+            let resumeBuffer: Buffer;
+            const resumeUrlStr = resume_url as string;
+
+            // Check if resume is stored in DB (local API URL)
+            if (resumeUrlStr.startsWith('/api/file/')) {
+                const fileId = resumeUrlStr.split('/').pop();
+                if (fileId) {
+                    // Fetch directly from DB to avoid HTTP loopback issues
+                    // Cast to any because File types might not be generated yet (dev server lock)
+                    const fileRecord = await (prisma as any).file.findUnique({
+                        where: { id: fileId },
+                    });
+
+                    if (!fileRecord) {
+                        throw new Error(`File record not found: ${fileId}`);
+                    }
+                    resumeBuffer = Buffer.from(fileRecord.data);
+                } else {
+                    throw new Error('Invalid file URL format');
+                }
+            } else {
+                // Download from external URL (e.g. legacy Firebase)
+                resumeBuffer = await downloadFileAsBuffer(resume_url);
+            }
 
             // Extract filename from URL or use default
             const urlParts = resume_url.split('/');
