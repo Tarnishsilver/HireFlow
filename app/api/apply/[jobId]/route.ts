@@ -143,12 +143,60 @@ export async function POST(
             const urlParts = resume_url.split('/');
             const filename = urlParts[urlParts.length - 1] || 'resume.pdf';
 
+
+
+            // PREPARE JD PAYLOAD FOR SCORING
+            // The /score endpoint expects specific JSON structure in the 'jd' field
+            let jdPayload: string;
+
+            // 1. Check if we have pre-parsed criteria in the DB
+            // Cast to any to access additional fields that might not be in the initial select type inference
+            const jobData = application.job as any;
+            const hasParsedCriteria = jobData.jd_hard_requirements && jobData.jd_hard_requirements.length > 0;
+
+            if (hasParsedCriteria) {
+                console.log('Using pre-parsed JD criteria from DB');
+                jdPayload = JSON.stringify({
+                    hard_requirements: jobData.jd_hard_requirements,
+                    preferred_skills: jobData.jd_preferred_skills,
+                    skill_normalization: jobData.jd_skill_normalization || {}
+                });
+            } else {
+                // 2. Fallback: Parse the raw text now if DB fields are empty
+                const jdText = application.job.description || '';
+
+                if (jdText.length < 10) {
+                    console.warn(`Skipping ATS scoring: Job Description too short (${jdText.length} chars).`);
+                    // Throw specific error to be caught below
+                    throw new Error('Skipped: JD too short');
+                }
+
+                console.log('Parsing raw JD text on-the-fly...');
+                // Import parse function
+                const { parseJobDescription } = await import('@/lib/ats/client');
+                const parsedJd = await parseJobDescription(jdText);
+
+                // Save back to DB for future caching (optional but good practice)
+                // await prisma.jobOpening.update(...) - skipping to avoid side effects in this transaction
+
+                jdPayload = JSON.stringify(parsedJd);
+            }
+
+            console.log('--- START ATS SCORING DEBUG ---');
+            console.log(`Job ID: ${jobId}`);
+            console.log(`JD Source: ${hasParsedCriteria ? 'DB Cache' : 'Live Parse'}`);
+            console.log(`JD Payload Length: ${jdPayload.length}`);
+            console.log(`Resume Buffer Size: ${resumeBuffer.length} bytes`);
+
             // Score the resume
             const atsResult = await scoreResume(
-                application.job.description,
+                jdPayload, // Send the JSON string, not raw text!
                 resumeBuffer,
                 filename
             );
+
+            console.log('ATS Result:', JSON.stringify(atsResult, null, 2));
+            console.log('--- END ATS SCORING DEBUG ---');
 
             // Update application with ATS scoring results
             await prisma.application.update({
@@ -164,7 +212,14 @@ export async function POST(
             console.log(`ATS resume scoring successful for application ${application.id}: ${atsResult.score}`);
         } catch (atsError: any) {
             // Log error but don't fail application submission
-            console.error('ATS resume scoring failed:', atsError.message);
+            console.error('--- ATS SCORING FAILED ---');
+            console.error('Error Message:', atsError.message);
+            if (atsError.response) {
+                // Try to log response body if available (depends on client implementation)
+                console.error('Response Status:', atsError.response.status);
+            }
+            console.error('Stack:', atsError.stack);
+            console.error('--------------------------');
         }
 
         return NextResponse.json({ application }, { status: 201 });
