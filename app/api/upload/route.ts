@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
             },
         });
 
+
+
         // Return URL to serve the file
         const url = `/api/file/${savedFile.id}`;
 

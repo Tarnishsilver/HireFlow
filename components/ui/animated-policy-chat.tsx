@@ -131,6 +131,8 @@ export function AnimatedPolicyChat() {
     const [inputFocused, setInputFocused] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+
+
     useEffect(() => {
         setSessionId(generateSessionId());
     }, []);
@@ -412,22 +414,24 @@ export function AnimatedPolicyChat() {
             </div>
 
             {/* Mouse follower effect */}
-            {inputFocused && (
-                <motion.div
-                    className="fixed w-[50rem] h-[50rem] rounded-full pointer-events-none z-0 opacity-[0.02] bg-gradient-to-r from-white via-gray-300 to-white blur-[96px]"
-                    animate={{
-                        x: mousePosition.x - 400,
-                        y: mousePosition.y - 400,
-                    }}
-                    transition={{
-                        type: "spring",
-                        damping: 25,
-                        stiffness: 150,
-                        mass: 0.5,
-                    }}
-                />
-            )}
-        </div>
+            {
+                inputFocused && (
+                    <motion.div
+                        className="fixed w-[50rem] h-[50rem] rounded-full pointer-events-none z-0 opacity-[0.02] bg-gradient-to-r from-white via-gray-300 to-white blur-[96px]"
+                        animate={{
+                            x: mousePosition.x - 400,
+                            y: mousePosition.y - 400,
+                        }}
+                        transition={{
+                            type: "spring",
+                            damping: 25,
+                            stiffness: 150,
+                            mass: 0.5,
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 }
 

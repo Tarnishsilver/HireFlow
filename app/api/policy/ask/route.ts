@@ -6,36 +6,27 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // The RAG API requires a company_id field
+        // Strict minimal schema requested by user
         const requestBody = {
-            ...body,
-            company_id: body.company_id || "default",
+            session_id: "session_1770215395211_9wb4u19ae",
+            company_id: "test",
+            question: body.question,
         };
 
-        console.log(`[Ragbot] Asking question for company_id: ${requestBody.company_id}`);
+        console.log("Sending to RAG:", JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(`${RAG_API_BASE}/ask`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
         });
 
-        if (!response.ok) {
-            return NextResponse.json(
-                { error: `API error: ${response.status}` },
-                { status: response.status }
-            );
-        }
-
         const data = await response.json();
+        console.log("RAG Response:", data);
+
         return NextResponse.json(data);
     } catch (error) {
-        console.error("RAG API error:", error);
-        return NextResponse.json(
-            { error: "Failed to connect to RAG API" },
-            { status: 500 }
-        );
+        console.error("RAG Error:", error);
+        return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
 }

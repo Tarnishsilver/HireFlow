@@ -9,7 +9,7 @@ import { CalendarPanel } from '@/components/dashboard/CalendarPanel';
 import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
 import {
     Briefcase, Plus, MapPin, Clock, Users, Loader2, LogOut, Eye,
-    RefreshCw, ShieldAlert, Calendar, Mail
+    RefreshCw, ShieldAlert, Calendar, Mail, FileText, Flame, Share2
 } from 'lucide-react';
 import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 import { auth, googleProvider } from '@/app/firebase';
@@ -323,6 +323,57 @@ function DashboardContent() {
                 {activeTab === 'overview' ? (
                     /* Overview Tab - Email & Calendar */
                     <FadeInStagger key="overview">
+                        <FadeIn>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                <Link
+                                    href="/policy"
+                                    className="group relative flex items-center p-6 bg-card border border-border hover:border-blue-500/50 hover:bg-blue-500/5 transition-all duration-300"
+                                >
+                                    <div className="h-12 w-12 bg-blue-500/10 text-blue-600 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform duration-300">
+                                        <FileText size={24} />
+                                    </div>
+                                    <div className="ml-4">
+                                        <h3 className="font-semibold text-lg">Policy Center</h3>
+                                        <p className="text-xs text-muted-foreground">View company policies</p>
+                                    </div>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-blue-600">
+                                        →
+                                    </div>
+                                </Link>
+
+                                <Link
+                                    href="/burnout"
+                                    className="group relative flex items-center p-6 bg-card border border-border hover:border-orange-500/50 hover:bg-orange-500/5 transition-all duration-300"
+                                >
+                                    <div className="h-12 w-12 bg-orange-500/10 text-orange-600 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform duration-300">
+                                        <Flame size={24} />
+                                    </div>
+                                    <div className="ml-4">
+                                        <h3 className="font-semibold text-lg">Burnout Check</h3>
+                                        <p className="text-xs text-muted-foreground">Monitor team wellness</p>
+                                    </div>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-orange-600">
+                                        →
+                                    </div>
+                                </Link>
+
+                                <Link
+                                    href="/test-social"
+                                    className="group relative flex items-center p-6 bg-card border border-border hover:border-purple-500/50 hover:bg-purple-500/5 transition-all duration-300"
+                                >
+                                    <div className="h-12 w-12 bg-purple-500/10 text-purple-600 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform duration-300">
+                                        <Share2 size={24} />
+                                    </div>
+                                    <div className="ml-4">
+                                        <h3 className="font-semibold text-lg">Social Check</h3>
+                                        <p className="text-xs text-muted-foreground">Background verification</p>
+                                    </div>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-purple-600">
+                                        →
+                                    </div>
+                                </Link>
+                            </div>
+                        </FadeIn>
                         {!data && !loadingData && !error && (
                             <FadeIn>
                                 <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
