@@ -241,8 +241,8 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                                                             className={cn(
                                                                 "flex flex-col border-l-2 px-1.5 py-1 text-[10px] leading-tight mb-1 rounded-r-sm",
                                                                 event.category === 'Interview'
-                                                                    ? "border-primary bg-primary/10"
-                                                                    : "border-foreground bg-muted/50"
+                                                                    ? "border-primary bg-primary/20"
+                                                                    : "border-foreground/50 bg-foreground/10"
                                                             )}
                                                         >
                                                             <p className={cn(

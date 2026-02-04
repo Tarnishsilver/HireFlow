@@ -12,10 +12,10 @@ interface EmailPanelProps {
 }
 
 const categoryColors: Record<string, string> = {
-    Interviews: 'border-l-2 border-l-foreground',
-    Offers: 'border-l-2 border-l-foreground/60',
-    Onboarding: 'border-l-2 border-l-foreground/40',
-    'Internal HR': 'border-l-2 border-l-foreground/20',
+    Interviews: 'border-l-4 border-l-blue-500',
+    Offers: 'border-l-4 border-l-green-500',
+    Onboarding: 'border-l-4 border-l-yellow-500',
+    'Internal HR': 'border-l-4 border-l-muted-foreground',
 };
 
 export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps) => {

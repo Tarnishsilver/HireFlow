@@ -147,7 +147,7 @@ function LoginContent() {
                             <button
                                 onClick={() => handleRoleSelect('HR')}
                                 disabled={submitting}
-                                className="w-full flex items-center gap-4 p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                className="w-full flex items-center gap-4 p-6 bg-card border-2 border-border rounded-xl hover:border-primary hover:bg-primary/10 transition-all group"
                             >
                                 <div className="h-12 w-12 bg-blue-500/10 rounded-xl flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
                                     <Users className="h-6 w-6 text-blue-500" />
@@ -165,7 +165,7 @@ function LoginContent() {
                             <button
                                 onClick={() => handleRoleSelect('CANDIDATE')}
                                 disabled={submitting}
-                                className="w-full flex items-center gap-4 p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                className="w-full flex items-center gap-4 p-6 bg-card border-2 border-border rounded-xl hover:border-primary hover:bg-primary/10 transition-all group"
                             >
                                 <div className="h-12 w-12 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
                                     <Briefcase className="h-6 w-6 text-green-500" />
