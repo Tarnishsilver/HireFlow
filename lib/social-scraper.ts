@@ -1,6 +1,7 @@
 
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+// Imports moved to dynamic imports inside getBrowser
+// import puppeteer from 'puppeteer-core';
+// import chromium from '@sparticuz/chromium';
 // We'll import the local puppeteer dynamically to avoid bundling issues in Vercel if possible,
 // or just rely on the conditional logic. 
 
@@ -19,7 +20,10 @@ async function getBrowser() {
     if (IS_PRODUCTION) {
         // Vercel / Production Environment
         try {
-            browser = await puppeteer.launch({
+            const chromium = (await import('@sparticuz/chromium')).default;
+            const puppeteerCore = (await import('puppeteer-core')).default;
+
+            browser = await puppeteerCore.launch({
                 args: chromium.args,
                 defaultViewport: (chromium as any).defaultViewport,
                 executablePath: await chromium.executablePath(
@@ -34,8 +38,7 @@ async function getBrowser() {
     } else {
         // Local Development
         try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const puppeteerLocal = require('puppeteer');
+            const puppeteerLocal = (await import('puppeteer')).default;
             browser = await puppeteerLocal.launch({
                 headless: true,
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
