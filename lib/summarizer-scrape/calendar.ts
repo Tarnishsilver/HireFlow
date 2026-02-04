@@ -75,6 +75,65 @@ export async function createCalendarEvent(
     }
 }
 
+export interface CalendarEventResult {
+    id?: string | null;
+    hangoutLink?: string | null;
+    htmlLink?: string | null;
+    [key: string]: any;
+}
+
+export async function createInterviewEvent(
+    accessToken: string,
+    candidateName: string,
+    candidateEmail: string,
+    jobTitle: string,
+    companyName: string,
+    startTime: Date
+): Promise<CalendarEventResult> {
+    // 1 hour duration
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+    const summary = `Interview: ${candidateName} for ${jobTitle}`;
+    const description = `Interview with ${candidateName} for the position of ${jobTitle} at ${companyName}.\n\nCandidate Email: ${candidateEmail}`;
+
+    const calendar = getCalendarClient(accessToken);
+
+    const event = {
+        summary: summary,
+        description: description,
+        start: {
+            dateTime: startTime.toISOString(),
+            timeZone: 'UTC',
+        },
+        end: {
+            dateTime: endTime.toISOString(),
+            timeZone: 'UTC',
+        },
+        attendees: [
+            { email: candidateEmail },
+        ],
+        conferenceData: {
+            createRequest: {
+                requestId: Math.random().toString(36).substring(7),
+                conferenceSolutionKey: { type: 'hangoutsMeet' },
+            },
+        },
+    };
+
+    try {
+        const response = await calendar.events.insert({
+            calendarId: 'primary',
+            requestBody: event,
+            conferenceDataVersion: 1, // Required for creating Meet links
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error creating interview event:", error);
+        throw error;
+    }
+}
+
 function determineCategory(summary: string): CalendarEvent['category'] {
     const text = summary.toLowerCase();
     if (text.includes('interview')) return 'Interview';

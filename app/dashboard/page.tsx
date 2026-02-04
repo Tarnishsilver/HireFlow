@@ -108,9 +108,10 @@ function DashboardContent() {
             } else {
                 throw new Error("Could not retrieve Google Access Token. Please try again.");
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || 'Failed to connect to Google Workspace');
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            setError(message || 'Failed to connect to Google Workspace');
         }
     };
 
@@ -121,9 +122,10 @@ function DashboardContent() {
         try {
             const result = await getDashboardData(token);
             setData(result);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || 'Failed to fetch dashboard data');
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            setError(message || 'Failed to fetch dashboard data');
         } finally {
             setLoadingData(false);
         }
@@ -146,9 +148,10 @@ function DashboardContent() {
                 alert(`Successfully created ${res.count} calendar events from emails!`);
                 fetchDashboardData(token);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            alert("Failed to sync: " + err.message);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            alert("Failed to sync: " + message);
         } finally {
             setLoadingData(false);
         }
@@ -189,9 +192,10 @@ function DashboardContent() {
             alert(`✅ Added "${event.title}" to your Google Calendar!`);
 
             if (token) fetchDashboardData(token);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to add event:', err);
-            alert('Failed to add event to calendar: ' + err.message);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            alert('Failed to add event to calendar: ' + message);
         }
     };
 

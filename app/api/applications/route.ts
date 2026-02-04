@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         });
 
         return NextResponse.json({ applications });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Fetch applications error:', error);
         return NextResponse.json(
             { error: 'Internal server error' },

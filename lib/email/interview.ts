@@ -37,7 +37,7 @@ export interface ScheduleInterviewResult {
     success: boolean;
     event?: CalendarEventResult;
     interviewDateTime?: Date;
-    meetLink?: string;
+    meetLink?: string | null;
     error?: string;
 }
 

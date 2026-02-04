@@ -20,10 +20,9 @@ async function getBrowser() {
         // Vercel / Production Environment
         browser = await puppeteer.launch({
             args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
+            defaultViewport: (chromium as any).defaultViewport,
             executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-            ignoreHTTPSErrors: true,
+            headless: (chromium as any).headless,
         });
     } else {
         // Local Development

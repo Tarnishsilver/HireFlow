@@ -83,7 +83,7 @@ export async function GET(
         });
 
         return NextResponse.json({ applications }, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Fetch applications error:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
