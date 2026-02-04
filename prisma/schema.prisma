@@ -34,6 +34,11 @@ model User {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
+  // Google OAuth tokens
+  google_access_token  String?
+  google_refresh_token String?
+  google_token_expiry  DateTime?
+
   // Relations
   job_openings JobOpening[]
 
