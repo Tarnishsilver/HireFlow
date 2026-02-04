@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ArrowLeft, Loader2, Upload, CheckCircle, X } from 'lucide-react';
+import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 // import { storage } from '@/app/firebase';
 // import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -31,6 +32,7 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [githubUrl, setGithubUrl] = useState('');
+    const [linkedinUrl, setLinkedinUrl] = useState('');
     const [portfolioUrl, setPortfolioUrl] = useState('');
 
     // Resume upload
@@ -159,6 +161,7 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
                     candidate_email: email,
                     resume_url: resumeUrl,
                     github_url: githubUrl || null,
+                    linkedin_url: linkedinUrl || null,
                     portfolio_url: portfolioUrl || null,
                 }),
             });
@@ -257,6 +260,16 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
                     </div>
                 )}
 
+                {/* Loading Overlay */}
+                {submitting && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
+                        <div className="bg-card border border-border rounded-lg shadow-lg p-6 flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                            <PrismFluxLoader size={40} speed={4} />
+                            <p className="mt-4 text-sm font-medium text-foreground">Submitting Application...</p>
+                        </div>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Info */}
                     <section className="bg-card border border-border rounded-xl p-6">
@@ -346,6 +359,20 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
                                     placeholder="https://github.com/username"
                                     className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1.5">LinkedIn Profile (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={linkedinUrl}
+                                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                                    placeholder="e.g. linkedin.com/in/username"
+                                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    We use this to analyze your professional presence and activity.
+                                </p>
                             </div>
 
                             <div>

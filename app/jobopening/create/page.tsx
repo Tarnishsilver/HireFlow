@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ArrowLeft, Loader2, Plus, X } from 'lucide-react';
+import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 
 export default function CreateJobPage() {
     const router = useRouter();
@@ -131,6 +132,16 @@ export default function CreateJobPage() {
                 {error && (
                     <div className="bg-destructive/10 text-destructive p-4 rounded-lg mb-6">
                         {error}
+                    </div>
+                )}
+
+                {/* Loading Overlay */}
+                {submitting && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
+                        <div className="bg-card border border-border rounded-lg shadow-lg p-6 flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                            <PrismFluxLoader size={40} speed={4} />
+                            <p className="mt-4 text-sm font-medium text-foreground">Creating Job Opening...</p>
+                        </div>
                     </div>
                 )}
 

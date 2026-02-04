@@ -79,6 +79,8 @@ export async function GET(
                 ats_decision: true,
                 ats_missing_skills: true,
                 ats_reasons: true,
+                linkedin_url: true,
+                social_data: true,
             },
         });
 

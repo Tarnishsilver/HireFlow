@@ -47,6 +47,7 @@ export interface ScheduleInterviewResult {
  */
 export async function scheduleInterview(
     accessToken: string,
+    refreshToken: string | undefined | null,
     candidateName: string,
     candidateEmail: string,
     jobTitle: string,
@@ -59,6 +60,7 @@ export async function scheduleInterview(
 
         const event = await createInterviewEvent(
             accessToken,
+            refreshToken,
             candidateName,
             candidateEmail,
             jobTitle,

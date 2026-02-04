@@ -50,7 +50,7 @@ function shouldScheduleInterview(score: number, decision: string): boolean {
     }
 
     // Score-based check
-    return score >= 75;
+    return score >= 60;
 }
 
 /**
@@ -105,6 +105,7 @@ export async function processApplicationNotification(
             // Schedule the interview
             const interviewResult = await scheduleInterview(
                 accessToken,
+                hrUser.google_refresh_token,
                 data.candidateName,
                 data.candidateEmail,
                 data.jobTitle,
@@ -134,7 +135,7 @@ export async function processApplicationNotification(
             const emailHtml = formatEmailHtml(emailContent, data.companyName);
 
             // Send the email
-            const emailResult = await sendEmailViaGmail(accessToken, hrEmail, {
+            const emailResult = await sendEmailViaGmail(accessToken, hrUser.google_refresh_token, hrEmail, {
                 to: data.candidateEmail,
                 subject: `Interview Invitation: ${data.jobTitle} at ${data.companyName}`,
                 htmlBody: emailHtml,
@@ -144,6 +145,26 @@ export async function processApplicationNotification(
             if (!emailResult.success) {
                 result.error = emailResult.error;
             }
+
+            // NOTIFY HR
+            console.log('Sending summary email to HR...');
+            const hrSummaryHtml = `
+                <h2>New Candidate Interview Scheduled</h2>
+                <p><strong>Candidate:</strong> ${data.candidateName}</p>
+                <p><strong>Score:</strong> ${data.atsScore}/100</p>
+                <p><strong>Decision:</strong> ${data.atsDecision}</p>
+                <p>An interview invitation has been sent to the candidate for:</p>
+                <p><strong>Date:</strong> ${interviewResult.interviewDateTime?.toLocaleString()}</p>
+                <p><strong>Link:</strong> <a href="${interviewResult.meetLink}">${interviewResult.meetLink}</a></p>
+                <hr />
+                <p>You can view full details in the dashboard.</p>
+            `;
+
+            await sendEmailViaGmail(accessToken, hrUser.google_refresh_token, hrEmail, {
+                to: hrEmail,
+                subject: `[Action Required] Interview Scheduled: ${data.candidateName}`,
+                htmlBody: hrSummaryHtml,
+            }).catch(e => console.error('Failed to notify HR:', e));
 
         } else {
             // LOW/MID SCORE: Send rejection email with feedback
@@ -163,7 +184,7 @@ export async function processApplicationNotification(
             const emailHtml = formatEmailHtml(emailContent, data.companyName);
 
             // Send the email
-            const emailResult = await sendEmailViaGmail(accessToken, hrEmail, {
+            const emailResult = await sendEmailViaGmail(accessToken, hrUser.google_refresh_token, hrEmail, {
                 to: data.candidateEmail,
                 subject: `Update on Your Application: ${data.jobTitle} at ${data.companyName}`,
                 htmlBody: emailHtml,

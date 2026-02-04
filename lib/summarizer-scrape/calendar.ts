@@ -9,8 +9,8 @@ export interface CalendarEvent {
     start: string;
 }
 
-export async function fetchHREvents(accessToken: string): Promise<CalendarEvent[]> {
-    const calendar = getCalendarClient(accessToken);
+export async function fetchHREvents(accessToken: string, refreshToken?: string): Promise<CalendarEvent[]> {
+    const calendar = getCalendarClient(accessToken, refreshToken);
 
     try {
         const response = await calendar.events.list({
@@ -84,6 +84,7 @@ export interface CalendarEventResult {
 
 export async function createInterviewEvent(
     accessToken: string,
+    refreshToken: string | undefined | null,
     candidateName: string,
     candidateEmail: string,
     jobTitle: string,
@@ -96,7 +97,7 @@ export async function createInterviewEvent(
     const summary = `Interview: ${candidateName} for ${jobTitle}`;
     const description = `Interview with ${candidateName} for the position of ${jobTitle} at ${companyName}.\n\nCandidate Email: ${candidateEmail}`;
 
-    const calendar = getCalendarClient(accessToken);
+    const calendar = getCalendarClient(accessToken, refreshToken || undefined);
 
     const event = {
         summary: summary,

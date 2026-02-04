@@ -84,6 +84,8 @@ model Application {
   github_url      String?
   portfolio_url   String?
   created_at      DateTime @default(now())
+  linkedin_url    String?
+  social_data     Json?
 
   // ATS Scoring Results
   ats_score          Int?      // ATS score (0-100)

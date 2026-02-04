@@ -9,12 +9,15 @@ import { google } from 'googleapis';
 /**
  * Create an authenticated Gmail client
  */
-export function createGmailClient(accessToken: string) {
+export function createGmailClient(accessToken: string, refreshToken?: string) {
     const auth = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET
     );
-    auth.setCredentials({ access_token: accessToken });
+    auth.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken
+    });
     return google.gmail({ version: 'v1', auth });
 }
 
@@ -84,11 +87,12 @@ export interface SendEmailResult {
  */
 export async function sendEmailViaGmail(
     accessToken: string,
+    refreshToken: string | undefined | null,
     hrEmail: string,
     options: SendEmailOptions
 ): Promise<SendEmailResult> {
     try {
-        const gmail = createGmailClient(accessToken);
+        const gmail = createGmailClient(accessToken, refreshToken || undefined);
 
         const encodedEmail = createEncodedEmail(
             options.to,
@@ -113,6 +117,7 @@ export async function sendEmailViaGmail(
         };
     } catch (error: any) {
         console.error('Failed to send email via Gmail:', error);
+        console.error('Error details:', JSON.stringify(error.response?.data || error.message, null, 2));
 
         return {
             success: false,

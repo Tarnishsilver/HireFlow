@@ -304,13 +304,14 @@ function DashboardContent() {
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-                {/* Loading Overlay */}
+            <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 relative">
+                {/* Loading Overlay - Minimal */}
                 {loadingData && (
-                    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-                        <PrismFluxLoader size={60} speed={4} />
-                        <p className="mt-6 text-lg font-medium">Syncing with Google Workspace...</p>
-                        <p className="mt-2 text-sm text-muted-foreground">Fetching emails, calendar events, and generating summaries</p>
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
+                        <div className="bg-card border border-border rounded-lg shadow-lg p-6 flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                            <PrismFluxLoader size={40} speed={4} />
+                            <p className="mt-4 text-sm font-medium text-foreground">Connecting to Google Workspace...</p>
+                        </div>
                     </div>
                 )}
 

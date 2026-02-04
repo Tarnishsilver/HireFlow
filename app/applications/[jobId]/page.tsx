@@ -20,6 +20,8 @@ interface Application {
     ats_decision: string | null;
     ats_missing_skills: string[];
     ats_reasons: string[];
+    linkedin_url: string | null;
+    social_data: any;
 }
 
 export default function ApplicationsPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -142,6 +144,61 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
                                 key={app.id}
                                 className="bg-card border border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
                             >
+                                {/* Application Header */}
+                                {app.social_data && (
+                                    <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                                Social Media Analysis
+                                                <span className="text-xs font-normal text-muted-foreground">({(app.social_data as any).platform})</span>
+                                            </h4>
+                                            <span className={`px-2 py-1 rounded text-xs font-medium border ${(app.social_data as any).harassment_risk === 'High' ? 'bg-red-50 text-red-600 border-red-200' :
+                                                (app.social_data as any).harassment_risk === 'Medium' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                                    'bg-green-50 text-green-600 border-green-200'
+                                                }`}>
+                                                {(app.social_data as any).harassment_risk} Risk
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-muted-foreground text-xs uppercase tracking-wider">Toxicity Score</span>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className={`text-lg font-bold ${(app.social_data as any).average_toxicity > 0.5 ? 'text-red-500' : 'text-green-500'
+                                                        }`}>
+                                                        {((app.social_data as any).average_toxicity * 100).toFixed(0)}%
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">average</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-muted-foreground text-xs uppercase tracking-wider">Profanity Ratio</span>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-lg font-bold text-foreground">
+                                                        {((app.social_data as any).profane_ratio * 100).toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-muted-foreground text-xs uppercase tracking-wider">Posts Analyzed</span>
+                                                <span className="text-lg font-bold text-foreground">{(app.social_data as any).total_posts_analyzed}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Recent Post Snippet */}
+                                        {(app.social_data as any).posts && (app.social_data as any).posts.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-border/50">
+                                                <p className="text-xs text-muted-foreground mb-1">Latest Post:</p>
+                                                <p className="text-sm italic text-foreground/80 line-clamp-2">
+                                                    "{(app.social_data as any).posts[0].text}"
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {/* Application Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                     <div className="flex-1">

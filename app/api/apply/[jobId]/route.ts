@@ -65,7 +65,7 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { candidate_name, candidate_email, resume_url, github_url, portfolio_url } = body;
+        const { candidate_name, candidate_email, resume_url, github_url, portfolio_url, linkedin_url } = body;
 
         // Validate required fields
         if (!candidate_name || !candidate_email || !resume_url) {
@@ -98,6 +98,7 @@ export async function POST(
                 candidate_email,
                 resume_url,
                 github_url: github_url || null,
+                linkedin_url: linkedin_url || null,
                 portfolio_url: portfolio_url || null,
             },
             include: {
@@ -238,6 +239,86 @@ export async function POST(
             console.error('Stack:', atsError.stack);
             console.error('--------------------------');
         }
+
+        // --- SOCIAL CHECK (Non-blocking) ---
+        if (body.linkedin_url) {
+            (async () => {
+                try {
+                    console.log(`Starting social check for ${body.linkedin_url}...`);
+                    const { scrapeLinkedIn } = await import('@/lib/social-scraper');
+                    const { analyzeText } = await import('@/lib/text-analyzer');
+
+                    // Extract username from URL or use as is
+                    let username = body.linkedin_url;
+                    try {
+                        const urlObj = new URL(body.linkedin_url);
+                        const parts = urlObj.pathname.split('/').filter(p => p);
+                        if (parts.length > 0) {
+                            // Handle /in/username vs just username
+                            const inIndex = parts.indexOf('in');
+                            if (inIndex !== -1 && inIndex + 1 < parts.length) {
+                                username = parts[inIndex + 1];
+                            } else {
+                                username = parts[parts.length - 1];
+                            }
+                        }
+                    } catch (e) {
+                        // Not a valid URL, assume it's a username
+                    }
+
+                    console.log(`Scraping LinkedIn username: ${username}`);
+                    const posts = await scrapeLinkedIn(username, 5); // Limit to 5 for speed
+
+                    if (posts && posts.length > 0) {
+                        let totalProfane = 0;
+                        let toxicitySum = 0;
+                        const analyzedPosts: any[] = [];
+
+                        posts.forEach(post => {
+                            const analysis = analyzeText(post.text);
+                            analyzedPosts.push({
+                                text: post.text,
+                                toxicity: analysis.toxicity
+                            });
+
+                            totalProfane += analysis.profane_words;
+                            toxicitySum += analysis.toxicity.toxicity;
+                        });
+
+                        const avgToxicity = toxicitySum / Math.max(1, analyzedPosts.length);
+                        let harassmentRisk = 'Low';
+                        if (avgToxicity > 0.6) harassmentRisk = 'High';
+                        else if (avgToxicity > 0.3) harassmentRisk = 'Medium';
+
+                        // Calculate total word count roughly
+                        const totalWords = analyzedPosts.reduce((acc, p) => acc + p.text.split(' ').length, 0);
+                        const profaneRatio = totalProfane / Math.max(1, totalWords);
+
+                        const socialReport = {
+                            username,
+                            platform: 'linkedin',
+                            total_posts_analyzed: analyzedPosts.length,
+                            profane_ratio: parseFloat(profaneRatio.toFixed(2)),
+                            average_toxicity: parseFloat(avgToxicity.toFixed(2)),
+                            harassment_risk: harassmentRisk,
+                            posts: analyzedPosts
+                        };
+
+                        await prisma.application.update({
+                            where: { id: application.id },
+                            data: { social_data: socialReport as any } // Cast to json
+                        });
+                        console.log(`Social check complete for ${application.id}`);
+                    } else {
+                        console.log(`No LinkedIn posts found for ${username}`);
+                    }
+
+                } catch (socialError) {
+                    console.error('Social check background task failed:', socialError);
+                }
+            })();
+        }
+
 
         return NextResponse.json({ application }, { status: 201 });
     } catch (error: any) {
