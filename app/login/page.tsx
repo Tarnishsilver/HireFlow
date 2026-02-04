@@ -3,17 +3,13 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
     signInWithPopup,
-    updateProfile,
     GoogleAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/app/firebase';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { Briefcase, Users, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Briefcase, Users, Loader2 } from 'lucide-react';
 
-type AuthMode = 'login' | 'register';
 type RoleSelection = 'HR' | 'CANDIDATE' | null;
 
 function LoginContent() {
@@ -23,11 +19,6 @@ function LoginContent() {
 
     const { user, role, loading, setRole } = useAuth();
 
-    const [mode, setMode] = useState<AuthMode>('login');
-    const [selectedRole, setSelectedRole] = useState<RoleSelection>(null);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -75,58 +66,6 @@ function LoginContent() {
         }
     };
 
-    const handleEmailAuth = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        setSubmitting(true);
-
-        try {
-            if (mode === 'register') {
-                if (!selectedRole) {
-                    setError('Please select a role');
-                    setSubmitting(false);
-                    return;
-                }
-
-                const result = await createUserWithEmailAndPassword(auth, email, password);
-
-                if (name) {
-                    await updateProfile(result.user, { displayName: name });
-                }
-
-                // Set user role
-                await setRole(selectedRole);
-
-                if (redirectPath) {
-                    router.push(redirectPath);
-                } else if (selectedRole === 'HR') {
-                    router.push('/dashboard');
-                } else {
-                    router.push('/jobopening');
-                }
-            } else {
-                // Login
-                await signInWithEmailAndPassword(auth, email, password);
-                // The auth state change will trigger the redirect via useEffect
-            }
-        } catch (err: any) {
-            console.error('Auth error:', err);
-            if (err.code === 'auth/email-already-in-use') {
-                setError('An account with this email already exists');
-            } else if (err.code === 'auth/weak-password') {
-                setError('Password should be at least 6 characters');
-            } else if (err.code === 'auth/invalid-email') {
-                setError('Invalid email address');
-            } else if (err.code === 'auth/invalid-credential') {
-                setError('Invalid email or password');
-            } else {
-                setError(err.message || 'Authentication failed');
-            }
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     const handleGoogleAuth = async () => {
         setError(null);
         setSubmitting(true);
@@ -137,8 +76,6 @@ function LoginContent() {
             const credential = GoogleAuthProvider.credentialFromResult(result);
 
             // Extract tokens
-            // Note: _tokenResponse is an internal property but contains the OAuth refresh token
-            // which is NOT exposed in the credential object directly.
             const tokenResponse = (result as any)._tokenResponse;
             const googleAccessToken = credential?.accessToken;
             // oauthRefreshToken is specific to the IDP, whereas user.refreshToken is for Firebase
@@ -255,12 +192,10 @@ function LoginContent() {
                         <Briefcase className="h-7 w-7 text-primary" />
                     </div>
                     <h1 className="text-2xl font-bold">
-                        {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+                        Welcome to HR Tech
                     </h1>
                     <p className="text-muted-foreground mt-2">
-                        {mode === 'login'
-                            ? 'Sign in to access your dashboard'
-                            : 'Join HR Tech to get started'}
+                        Sign in to access your dashboard
                     </p>
                 </div>
 
@@ -270,106 +205,6 @@ function LoginContent() {
                         {error}
                     </div>
                 )}
-
-                {/* Role Selection for Registration */}
-                {mode === 'register' && (
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-3">I am a...</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedRole('HR')}
-                                className={`p-4 border rounded-xl text-center transition-all ${selectedRole === 'HR'
-                                    ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-border hover:border-primary/50'
-                                    }`}
-                            >
-                                <Users className="h-6 w-6 mx-auto mb-2" />
-                                <span className="font-medium">HR Professional</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedRole('CANDIDATE')}
-                                className={`p-4 border rounded-xl text-center transition-all ${selectedRole === 'CANDIDATE'
-                                    ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-border hover:border-primary/50'
-                                    }`}
-                            >
-                                <Briefcase className="h-6 w-6 mx-auto mb-2" />
-                                <span className="font-medium">Job Seeker</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Auth Form */}
-                <form onSubmit={handleEmailAuth} className="space-y-4">
-                    {mode === 'register' && (
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">Full Name</label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="John Doe"
-                                    className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1.5">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                required
-                                className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1.5">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                minLength={6}
-                                className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                        {mode === 'login' ? 'Sign In' : 'Create Account'}
-                    </button>
-                </form>
-
-                {/* Divider */}
-                <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-border"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                    </div>
-                </div>
 
                 {/* Google Sign In */}
                 <button
@@ -395,41 +230,8 @@ function LoginContent() {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                     </svg>
-                    Google
+                    Continue with Google
                 </button>
-
-                {/* Toggle Mode */}
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                    {mode === 'login' ? (
-                        <>
-                            Don't have an account?{' '}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setMode('register');
-                                    setError(null);
-                                }}
-                                className="text-primary font-medium hover:underline"
-                            >
-                                Sign up
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            Already have an account?{' '}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setMode('login');
-                                    setError(null);
-                                }}
-                                className="text-primary font-medium hover:underline"
-                            >
-                                Sign in
-                            </button>
-                        </>
-                    )}
-                </p>
             </div>
         </div>
 
