@@ -12,6 +12,8 @@ export async function POST(request: NextRequest) {
             company_id: body.company_id || "default",
         };
 
+        console.log(`[Ragbot] Asking question for company_id: ${requestBody.company_id}`);
+
         const response = await fetch(`${RAG_API_BASE}/ask`, {
             method: "POST",
             headers: {

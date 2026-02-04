@@ -159,7 +159,7 @@ export function AnimatedPolicyChat() {
             body: JSON.stringify({
                 session_id: sessionId,
                 question: question,
-                company_id: "test"
+                company_id: process.env.NEXT_PUBLIC_COMPANY_ID || "default"
             }),
         });
 
