@@ -15,6 +15,7 @@ import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
+import { FadeIn, FadeInStagger } from '@/components/animations/FadeIn';
 
 interface Job {
     id: string;
@@ -207,6 +208,10 @@ function DashboardContent() {
         );
     }
 
+
+
+    // ... (other imports remain, but I need to make sure I don't delete them. I'll just replace the component render part mainly, but since I have to replace a large chunk, I'll be careful)
+
     if (!user || role !== 'HR') {
         return null;
     }
@@ -214,7 +219,7 @@ function DashboardContent() {
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
+            <FadeIn direction="down" className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -277,7 +282,7 @@ function DashboardContent() {
                         </div>
                     </div>
                 </div>
-            </header>
+            </FadeIn>
 
             {/* Mobile Tab Navigation */}
             <div className="sm:hidden border-b border-border bg-background">
@@ -317,48 +322,52 @@ function DashboardContent() {
 
                 {activeTab === 'overview' ? (
                     /* Overview Tab - Email & Calendar */
-                    <>
+                    <FadeInStagger key="overview">
                         {!data && !loadingData && !error && (
-                            <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
-                                <div className="h-16 w-16 bg-primary/10 flex items-center justify-center rounded-2xl mb-6">
-                                    <Mail className="text-primary" size={32} />
+                            <FadeIn>
+                                <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
+                                    <div className="h-16 w-16 bg-primary/10 flex items-center justify-center rounded-2xl mb-6">
+                                        <Mail className="text-primary" size={32} />
+                                    </div>
+                                    <h2 className="text-2xl font-bold mb-2">Connect Google Workspace</h2>
+                                    <p className="text-muted-foreground max-w-md mb-8">
+                                        Sync your emails and calendar to get AI-powered summaries and event suggestions.
+                                    </p>
+                                    <button
+                                        onClick={handleConnectGoogle}
+                                        className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                    >
+                                        Connect Google Workspace
+                                    </button>
                                 </div>
-                                <h2 className="text-2xl font-bold mb-2">Connect Google Workspace</h2>
-                                <p className="text-muted-foreground max-w-md mb-8">
-                                    Sync your emails and calendar to get AI-powered summaries and event suggestions.
-                                </p>
-                                <button
-                                    onClick={handleConnectGoogle}
-                                    className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
-                                >
-                                    Connect Google Workspace
-                                </button>
-                            </div>
+                            </FadeIn>
                         )}
 
                         {error && (
-                            <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-destructive/20">
-                                <ShieldAlert className="text-destructive mb-4" size={48} />
-                                <h2 className="text-xl font-bold mb-2 text-destructive">Connection Error</h2>
-                                <p className="text-muted-foreground max-w-md mb-6">{error}</p>
-                                <button
-                                    onClick={handleConnectGoogle}
-                                    className="px-6 py-2 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors"
-                                >
-                                    Reconnect
-                                </button>
-                            </div>
+                            <FadeIn>
+                                <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-destructive/20">
+                                    <ShieldAlert className="text-destructive mb-4" size={48} />
+                                    <h2 className="text-xl font-bold mb-2 text-destructive">Connection Error</h2>
+                                    <p className="text-muted-foreground max-w-md mb-6">{error}</p>
+                                    <button
+                                        onClick={handleConnectGoogle}
+                                        className="px-6 py-2 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors"
+                                    >
+                                        Reconnect
+                                    </button>
+                                </div>
+                            </FadeIn>
                         )}
 
                         {data && (
                             <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
                                 {/* Left Panel: Calendar (3/4 of screen) */}
-                                <section className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
+                                <FadeIn className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
                                     <CalendarPanel events={data?.events || []} loading={loadingData} />
-                                </section>
+                                </FadeIn>
 
                                 {/* Right Panel: Email Summary (1/4 of screen) */}
-                                <section className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
+                                <FadeIn delay={0.1} className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
                                     <div className="mb-2 flex justify-between items-center">
                                         <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
                                         <button
@@ -373,45 +382,49 @@ function DashboardContent() {
                                     <div className="flex-1 min-h-0">
                                         <EmailPanel emails={data?.emails || []} loading={loadingData} onAddToCalendar={handleAddToCalendar} />
                                     </div>
-                                </section>
+                                </FadeIn>
                             </div>
                         )}
-                    </>
+                    </FadeInStagger>
                 ) : (
                     /* Jobs Tab */
-                    <>
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                            <div>
-                                <h2 className="text-2xl font-bold">Your Job Openings</h2>
-                                <p className="text-muted-foreground">Manage your job postings and view applications</p>
+                    <FadeInStagger key="jobs">
+                        <FadeIn>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold">Your Job Openings</h2>
+                                    <p className="text-muted-foreground">Manage your job postings and view applications</p>
+                                </div>
                             </div>
-                        </div>
+                        </FadeIn>
 
                         {loadingJobs ? (
                             <div className="flex items-center justify-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                             </div>
                         ) : jobs.length === 0 ? (
-                            <div className="text-center py-16 bg-card border border-border rounded-2xl">
-                                <div className="inline-flex items-center justify-center h-16 w-16 bg-muted rounded-2xl mb-4">
-                                    <Briefcase className="h-8 w-8 text-muted-foreground" />
+                            <FadeIn>
+                                <div className="text-center py-16 bg-card border border-border rounded-2xl">
+                                    <div className="inline-flex items-center justify-center h-16 w-16 bg-muted rounded-2xl mb-4">
+                                        <Briefcase className="h-8 w-8 text-muted-foreground" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold mb-2">No Job Openings Yet</h3>
+                                    <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                                        Create your first job opening to start receiving applications.
+                                    </p>
+                                    <Link
+                                        href="/jobopening/create"
+                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        Create Job Opening
+                                    </Link>
                                 </div>
-                                <h3 className="text-lg font-semibold mb-2">No Job Openings Yet</h3>
-                                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                                    Create your first job opening to start receiving applications.
-                                </p>
-                                <Link
-                                    href="/jobopening/create"
-                                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-                                >
-                                    <Plus className="h-5 w-5" />
-                                    Create Job Opening
-                                </Link>
-                            </div>
+                            </FadeIn>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 {jobs.map((job) => (
-                                    <div
+                                    <FadeIn
                                         key={job.id}
                                         className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors"
                                     >
@@ -461,16 +474,16 @@ function DashboardContent() {
                                                 </Link>
                                             </div>
                                         </div>
-                                    </div>
+                                    </FadeIn>
                                 ))}
                             </div>
                         )}
-                    </>
+                    </FadeInStagger>
                 )}
             </main>
 
             {/* Footer */}
-            <footer className="h-10 border-t border-border bg-card/50 flex items-center px-8 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+            <FadeIn className="h-10 border-t border-border bg-card/50 flex items-center px-8 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -480,7 +493,7 @@ function DashboardContent() {
                     <div>Cloud sync: {data ? 'Online' : 'Pending'}</div>
                 </div>
                 <div className="ml-auto">© 2026 HR Pulse Enterprise</div>
-            </footer>
+            </FadeIn>
         </div>
     );
 }
