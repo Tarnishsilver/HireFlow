@@ -85,7 +85,7 @@ export async function processApplicationNotification(
         }
 
         // Check if HR has stored Google access token
-        const accessToken = (hrUser as any).google_access_token;
+        const accessToken = hrUser.google_access_token;
 
         if (!accessToken) {
             console.log('HR has not connected Google Workspace. Skipping email notification.');

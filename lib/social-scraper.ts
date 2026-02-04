@@ -18,16 +18,21 @@ async function getBrowser() {
 
     if (IS_PRODUCTION) {
         // Vercel / Production Environment
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: (chromium as any).defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: (chromium as any).headless,
-        });
+        try {
+            browser = await puppeteer.launch({
+                args: chromium.args,
+                defaultViewport: (chromium as any).defaultViewport,
+                executablePath: await chromium.executablePath(
+                    "https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.tar"
+                ),
+                headless: (chromium as any).headless,
+            });
+        } catch (error) {
+            console.error("Production browser launch failed:", error);
+            throw error;
+        }
     } else {
         // Local Development
-        // We need to require 'puppeteer' (the full package) here
-        // But we must be careful not to break the build if it's missing in prod (though it should be devDep)
         try {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const puppeteerLocal = require('puppeteer');
@@ -36,8 +41,7 @@ async function getBrowser() {
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
         } catch (e) {
-            console.warn("Local puppeteer launch failed, trying core...", e);
-            // Fallback or error
+            console.warn("Local puppeteer launch failed, trying fallback...", e);
             throw new Error("Could not launch local browser. Ensure 'puppeteer' is installed.");
         }
     }

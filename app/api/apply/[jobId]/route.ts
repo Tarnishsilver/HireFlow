@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { processApplicationNotification } from '@/lib/email/processor';
 
 export const dynamic = 'force-dynamic';
 
@@ -210,6 +211,22 @@ export async function POST(
             });
 
             console.log(`ATS resume scoring successful for application ${application.id}: ${atsResult.score}`);
+
+            // Trigger automated email notification (non-blocking)
+            // We don't await this so the user gets a faster response
+            processApplicationNotification({
+                applicationId: application.id,
+                candidateName: application.candidate_name,
+                candidateEmail: application.candidate_email,
+                jobTitle: application.job.title,
+                companyName: application.job.company_name,
+                atsScore: atsResult.score,
+                atsDecision: atsResult.decision,
+                atsMissingSkills: atsResult.missing,
+                atsReasons: atsResult.reasons,
+                jobId: jobId,
+                hrUserId: job.created_by,
+            }).catch(err => console.error('Background notification error:', err));
         } catch (atsError: any) {
             // Log error but don't fail application submission
             console.error('--- ATS SCORING FAILED ---');

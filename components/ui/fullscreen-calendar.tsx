@@ -32,6 +32,7 @@ interface Event {
     name: string
     time: string
     datetime: string
+    category?: string // Added category for styling
 }
 
 interface CalendarData {
@@ -237,9 +238,17 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                                                     {dayData.events.slice(0, 2).map((event) => (
                                                         <div
                                                             key={event.id}
-                                                            className="flex flex-col border-l-2 border-foreground bg-muted/50 px-1.5 py-1 text-[10px] leading-tight"
+                                                            className={cn(
+                                                                "flex flex-col border-l-2 px-1.5 py-1 text-[10px] leading-tight mb-1 rounded-r-sm",
+                                                                event.category === 'Interview'
+                                                                    ? "border-primary bg-primary/10"
+                                                                    : "border-foreground bg-muted/50"
+                                                            )}
                                                         >
-                                                            <p className="font-medium truncate">{event.name}</p>
+                                                            <p className={cn(
+                                                                "font-medium truncate",
+                                                                event.category === 'Interview' && "text-primary font-bold"
+                                                            )}>{event.name}</p>
                                                             <p className="text-muted-foreground">{event.time}</p>
                                                         </div>
                                                     ))}

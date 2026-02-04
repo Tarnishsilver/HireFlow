@@ -16,7 +16,7 @@ export const CalendarPanel = ({ events, loading, onEventClick, onAddEvent }: Cal
     // Transform Google Calendar events to FullScreenCalendar format
     const calendarData = useMemo(() => {
         // Group events by day
-        const eventsByDay = new Map<string, { day: Date; events: { id: string; name: string; time: string; datetime: string }[] }>();
+        const eventsByDay = new Map<string, { day: Date; events: { id: string; name: string; time: string; datetime: string; category?: string }[] }>();
 
         events.forEach(event => {
             const eventDate = new Date(event.start);
@@ -34,6 +34,7 @@ export const CalendarPanel = ({ events, loading, onEventClick, onAddEvent }: Cal
                 name: event.title,
                 time: event.time,
                 datetime: event.start,
+                category: event.category, // Pass category
             });
         });
 
