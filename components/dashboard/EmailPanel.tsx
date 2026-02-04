@@ -42,7 +42,7 @@ export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps
     };
 
     return (
-        <div className="flex flex-col h-full bg-card border border-border overflow-hidden">
+        <div className="flex flex-col h-full bg-card border border-border overflow-hidden text-foreground">
             <div className="p-3 border-b border-border flex items-center gap-2">
                 <Mail size={14} />
                 <span className="text-xs font-bold uppercase tracking-wider">Email Digest</span>
@@ -57,7 +57,7 @@ export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps
                 ) : (
                     <div className="divide-y divide-border">
                         {emails.map((email) => (
-                            <div key={email.id} className={`p-3 hover:bg-muted/50 transition-colors ${categoryColors[email.category]}`}>
+                            <div key={email.id} className={`p-3 hover:bg-muted transition-colors bg-card ${categoryColors[email.category]}`}>
                                 {/* Category Tag */}
                                 <div className="flex items-center justify-between mb-1.5">
                                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">

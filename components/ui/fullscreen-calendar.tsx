@@ -84,7 +84,7 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
     }
 
     return (
-        <div className="flex flex-1 flex-col h-full bg-card border border-border">
+        <div className="flex flex-1 flex-col h-full bg-card border border-border text-foreground">
             {/* Calendar Header */}
             <div className="flex flex-col space-y-3 p-4 md:flex-row md:items-center md:justify-between md:space-y-0 border-b border-border">
                 <div className="flex flex-auto">
@@ -161,7 +161,7 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
 
                 {/* Calendar Days */}
                 <div className="flex flex-1 text-xs leading-6 overflow-auto">
-                    <div className="hidden w-full lg:grid lg:grid-cols-7 lg:grid-rows-5">
+                    <div className="hidden w-full md:grid md:grid-cols-7 md:grid-rows-5">
                         {days.map((day, dayIdx) =>
                             !isDesktop ? (
                                 <button
@@ -266,7 +266,7 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                     </div>
 
                     {/* Mobile View */}
-                    <div className="isolate grid w-full grid-cols-7 grid-rows-5 lg:hidden">
+                    <div className="isolate grid w-full grid-cols-7 grid-rows-5 md:hidden">
                         {days.map((day, dayIdx) => (
                             <button
                                 onClick={() => setSelectedDay(day)}

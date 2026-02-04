@@ -50,7 +50,7 @@ export const CalendarPanel = ({ events, loading, onEventClick, onAddEvent }: Cal
     }
 
     return (
-        <div className="h-full">
+        <div className="h-full text-foreground">
             <FullScreenCalendar data={calendarData} onAddEvent={onAddEvent} />
         </div>
     );

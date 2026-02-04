@@ -309,7 +309,7 @@ function DashboardContent() {
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 relative">
+            <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 relative bg-background">
                 {/* Loading Overlay - Minimal */}
                 {loadingData && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
@@ -413,12 +413,12 @@ function DashboardContent() {
                         {data && (
                             <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
                                 {/* Left Panel: Calendar (3/4 of screen) */}
-                                <FadeIn className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
+                                <div className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
                                     <CalendarPanel events={data?.events || []} loading={loadingData} />
-                                </FadeIn>
+                                </div>
 
                                 {/* Right Panel: Email Summary (1/4 of screen) */}
-                                <FadeIn delay={0.1} className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
+                                <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
                                     <div className="mb-2 flex justify-between items-center">
                                         <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
                                         <button
@@ -433,7 +433,7 @@ function DashboardContent() {
                                     <div className="flex-1 min-h-0">
                                         <EmailPanel emails={data?.emails || []} loading={loadingData} onAddToCalendar={handleAddToCalendar} />
                                     </div>
-                                </FadeIn>
+                                </div>
                             </div>
                         )}
                     </FadeInStagger>
