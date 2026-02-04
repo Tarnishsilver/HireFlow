@@ -73,7 +73,8 @@ function DashboardContent() {
             if (!dbUser?.id) return;
 
             try {
-                const response = await fetch(`/api/job/list?created_by=${dbUser.id}`);
+                // Fetch all jobs for the organization (internal view)
+                const response = await fetch(`/api/job/list?internal=true`);
                 const data = await response.json();
 
                 if (response.ok) {

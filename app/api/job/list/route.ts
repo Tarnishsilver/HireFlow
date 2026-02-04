@@ -14,14 +14,19 @@ export async function GET(request: NextRequest) {
         const whereClause: any = {};
 
         // Filter by status (default to LIVE for public view, but allow all for HR dashboard)
-        if (status) {
-            whereClause.status = status;
-        } else if (!createdBy) {
-            // Only default to LIVE if not viewing specific creator's jobs (public view)
-            whereClause.status = 'LIVE';
+        if (searchParams.get('internal') === 'true') {
+            // Internal view (HR dashboard): show all statuses unless specifically filtered
+            if (status) whereClause.status = status;
+        } else {
+            // Public view: default to LIVE
+            if (status) {
+                whereClause.status = status;
+            } else {
+                whereClause.status = 'LIVE';
+            }
         }
 
-        // Filter by creator (for HR dashboard)
+        // Filter by creator (optional for HR dashboard now)
         if (createdBy) {
             whereClause.created_by = createdBy;
         }
