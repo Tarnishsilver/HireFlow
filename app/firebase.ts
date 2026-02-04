@@ -29,7 +29,14 @@ export const storage = getStorage(app);
 
 // Add scopes for Gmail and Calendar
 googleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
 googleProvider.addScope('https://www.googleapis.com/auth/calendar');
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+
+// Force refresh token on every login for now to ensure we capture it
+googleProvider.setCustomParameters({
+    access_type: 'offline',
+    prompt: 'consent'
+});
 
 export default app;

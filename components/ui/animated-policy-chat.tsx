@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useTransition } from "react";
-import { useState, FormEvent } from "react";
+import { useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-    Paperclip,
     SendIcon,
-    XIcon,
     LoaderIcon,
     Bot,
-    RefreshCw,
-    FileText,
-    CheckCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as React from "react"
@@ -136,12 +131,6 @@ export function AnimatedPolicyChat() {
     const [inputFocused, setInputFocused] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // File upload state
-    const [attachedFile, setAttachedFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadSuccess, setUploadSuccess] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         setSessionId(generateSessionId());
     }, []);
@@ -170,6 +159,7 @@ export function AnimatedPolicyChat() {
             body: JSON.stringify({
                 session_id: sessionId,
                 question: question,
+                company_id: "default"
             }),
         });
 
@@ -181,68 +171,6 @@ export function AnimatedPolicyChat() {
         return data.answer;
     };
 
-    const uploadDocument = async (file: File): Promise<boolean> => {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("company_id", "default");
-
-        const response = await fetch("/api/policy/upload", {
-            method: "POST",
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error(`Upload failed: ${response.status}`);
-        }
-
-        return true;
-    };
-
-    const handleFileSelect = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (!file.name.toLowerCase().endsWith('.pdf')) {
-                setError("Only PDF files are allowed");
-                return;
-            }
-            setAttachedFile(file);
-            setUploadSuccess(false);
-            setError(null);
-        }
-        // Reset input so same file can be selected again
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const removeAttachedFile = () => {
-        setAttachedFile(null);
-        setUploadSuccess(false);
-    };
-
-    const resetSession = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const newSessionId = generateSessionId();
-
-            await fetch(`/api/policy/reset?session_id=${encodeURIComponent(newSessionId)}`, {
-                method: "POST",
-            });
-
-            setSessionId(newSessionId);
-            setMessages([]);
-            setError(null);
-        } catch {
-            setError("Failed to reset session. Please try again.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -253,49 +181,26 @@ export function AnimatedPolicyChat() {
     };
 
     const handleSendMessage = async () => {
-        if (!value.trim() || isLoading || isUploading) return;
+        if (!value.trim() || isLoading) return;
 
         const userMessage = value.trim();
-        const fileToUpload = attachedFile;
 
         setValue("");
         adjustHeight(true);
         setError(null);
 
-        // Build display message
-        const displayMessage = fileToUpload
-            ? `📎 ${fileToUpload.name}\n\n${userMessage}`
-            : userMessage;
-
         setMessages((prev) => [
             ...prev,
             {
                 id: prev.length + 1,
-                content: displayMessage,
+                content: userMessage,
                 sender: "user",
             },
         ]);
 
-        // Clear attached file after adding to message
-        setAttachedFile(null);
-        setUploadSuccess(false);
         setIsLoading(true);
 
         try {
-            // If there's a file attached, upload it first
-            if (fileToUpload) {
-                setIsUploading(true);
-                try {
-                    await uploadDocument(fileToUpload);
-                    setUploadSuccess(true);
-                } catch (uploadError) {
-                    setError("Failed to upload document. Your question will be answered without the document context.");
-                } finally {
-                    setIsUploading(false);
-                }
-            }
-
-            // Then ask the question
             const answer = await askQuestion(userMessage);
             setMessages((prev) => [
                 ...prev,
@@ -439,55 +344,11 @@ export function AnimatedPolicyChat() {
             {/* Input Area */}
             <div className="relative z-10 border-t border-white/10 backdrop-blur-xl bg-black/50">
                 <div className="max-w-4xl mx-auto px-6 py-4">
-                    {/* Hidden file input */}
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept=".pdf"
-                        className="hidden"
-                    />
-
                     <motion.div
                         className="relative backdrop-blur-2xl bg-white/[0.02] rounded-2xl border border-white/[0.05] shadow-2xl"
                         initial={{ scale: 0.98 }}
                         animate={{ scale: 1 }}
                     >
-                        {/* Attached file preview */}
-                        <AnimatePresence>
-                            {attachedFile && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="border-b border-white/[0.05]"
-                                >
-                                    <div className="px-4 py-3 flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                                <FileText className="w-4 h-4 text-white/70" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm text-white/80 truncate">{attachedFile.name}</p>
-                                                <p className="text-xs text-white/40">
-                                                    {(attachedFile.size / 1024).toFixed(1)} KB • PDF
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <motion.button
-                                            type="button"
-                                            onClick={removeAttachedFile}
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            className="p-1.5 text-white/40 hover:text-white/90 hover:bg-white/10 rounded-lg transition-colors"
-                                        >
-                                            <XIcon className="w-4 h-4" />
-                                        </motion.button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
                         <div className="p-4">
                             <Textarea
                                 ref={textareaRef}
@@ -499,7 +360,7 @@ export function AnimatedPolicyChat() {
                                 onKeyDown={handleKeyDown}
                                 onFocus={() => setInputFocused(true)}
                                 onBlur={() => setInputFocused(false)}
-                                placeholder={attachedFile ? "Ask about the uploaded document..." : "Ask about company policies..."}
+                                placeholder="Ask about company policies..."
                                 containerClassName="w-full"
                                 className={cn(
                                     "w-full px-4 py-3",
@@ -515,42 +376,17 @@ export function AnimatedPolicyChat() {
                                     overflow: "hidden",
                                 }}
                                 showRing={false}
-                                disabled={isLoading || isUploading}
+                                disabled={isLoading}
                             />
                         </div>
 
-                        <div className="p-4 border-t border-white/[0.05] flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <motion.button
-                                    type="button"
-                                    onClick={handleFileSelect}
-                                    whileTap={{ scale: 0.94 }}
-                                    disabled={isLoading || isUploading}
-                                    className={cn(
-                                        "p-2 rounded-lg transition-colors relative group",
-                                        attachedFile
-                                            ? "text-green-400 bg-green-400/10"
-                                            : "text-white/40 hover:text-white/90"
-                                    )}
-                                >
-                                    {attachedFile ? (
-                                        <CheckCircle className="w-4 h-4" />
-                                    ) : (
-                                        <Paperclip className="w-4 h-4" />
-                                    )}
-                                    {/* Tooltip */}
-                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white/70 bg-black/80 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                        {attachedFile ? "File attached" : "Attach PDF"}
-                                    </span>
-                                </motion.button>
-                            </div>
-
+                        <div className="p-4 border-t border-white/[0.05] flex items-center justify-end gap-4">
                             <motion.button
                                 type="button"
                                 onClick={handleSendMessage}
                                 whileHover={{ scale: 1.01 }}
                                 whileTap={{ scale: 0.98 }}
-                                disabled={isLoading || isUploading || !value.trim()}
+                                disabled={isLoading || !value.trim()}
                                 className={cn(
                                     "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                                     "flex items-center gap-2",
@@ -559,18 +395,18 @@ export function AnimatedPolicyChat() {
                                         : "bg-white/[0.05] text-white/40"
                                 )}
                             >
-                                {isLoading || isUploading ? (
+                                {isLoading ? (
                                     <LoaderIcon className="w-4 h-4 animate-[spin_2s_linear_infinite]" />
                                 ) : (
                                     <SendIcon className="w-4 h-4" />
                                 )}
-                                <span>{isUploading ? "Uploading..." : "Send"}</span>
+                                <span>Send</span>
                             </motion.button>
                         </div>
                     </motion.div>
 
                     <p className="text-center text-xs text-white/30 mt-3">
-                        Press Enter to send • Shift+Enter for new line • 📎 Attach PDF documents
+                        Press Enter to send • Shift+Enter for new line
                     </p>
                 </div>
             </div>

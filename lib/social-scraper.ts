@@ -183,28 +183,49 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
         await new Promise(r => setTimeout(r, 3000));
 
         // Selectors
-        // .feed-shared-update-v2
+        // Wait for potential content
+        try {
+            await page.waitForSelector('main', { timeout: 5000 });
+        } catch (e) { }
+
+        // Try to identify posts
+        // LinkedIn public profile activity selectors are tricky and dynamic.
+        // We look for article, or li elements that look like updates.
+        const possibleSelectors = [
+            '.feed-shared-update-v2',
+            'li.profile-creator-shared-feed-update__container',
+            'div.attribution-activity-output',
+            'article',
+            '.occludable-update'
+        ];
 
         let attempts = 0;
         while (posts.length < limit && attempts < 5) {
-            const elements = await page.$$('.feed-shared-update-v2, li.profile-creator-shared-feed-update__container, div.attribution-activity-output');
+            // Get all candidate elements from all selectors
+            const elements = await page.$$(possibleSelectors.join(', '));
+            console.log(`Found ${elements.length} potential post elements on attempt ${attempts + 1}`);
 
             for (const element of elements) {
                 if (posts.length >= limit) break;
                 try {
-                    // Try multiple selectors for text
+                    // Try multiple selectors for text within the post
                     let text = '';
-                    const textEl = await element.$('.update-components-text, .feed-shared-update-v2__description-wrapper, .feed-shared-text');
+
+                    // We try to get text from specific description parts first, then fall back to the whole element
+                    const textEl = await element.$('.feed-shared-update-v2__description-wrapper, .feed-shared-text, .update-components-text, span.break-words');
 
                     if (textEl) {
                         text = await (await textEl.getProperty('innerText')).jsonValue() as string;
                     } else {
+                        // Fallback: get text of the whole container but this might be noisy
                         text = await (await element.getProperty('innerText')).jsonValue() as string;
                     }
 
                     text = text.trim();
+
+                    // Basic cleanup: remove "Like", "Comment", generic UI text if possible. 
+                    // But for now, just checking length is a decent heuristic.
                     if (text.length > 20 && !posts.some(p => p.text === text)) {
-                        // Filter out metadata keywords if possible (simplified here)
                         posts.push({
                             text: text.slice(0, 500), // Truncate for safety
                             created_at: new Date().toISOString(),
@@ -214,9 +235,19 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
                 } catch (e) { continue; }
             }
 
+            if (posts.length >= limit) break;
+
+            // Scroll down
+            const previousHeight = await page.evaluate('document.body.scrollHeight');
             await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
             await new Promise(r => setTimeout(r, 2000));
-            attempts++;
+            const newHeight = await page.evaluate('document.body.scrollHeight');
+
+            if ((newHeight as number) === (previousHeight as number)) {
+                attempts++;
+            } else {
+                attempts = 0;
+            }
         }
 
     } catch (error) {

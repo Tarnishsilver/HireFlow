@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 
 interface AnalysisResult {
     username: string;
@@ -83,7 +84,17 @@ export default function SocialCheck() {
                         Analyze a public profile for toxicity and profanity.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
+                    {/* Loading Overlay */}
+                    {loading && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[1px] rounded-lg">
+                            <div className="bg-card border border-border rounded-lg shadow-lg p-6 flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                                <PrismFluxLoader size={40} speed={4} />
+                                <p className="mt-4 text-sm font-medium text-foreground">Scraping & Analyzing...</p>
+                            </div>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="space-y-2 col-span-1">

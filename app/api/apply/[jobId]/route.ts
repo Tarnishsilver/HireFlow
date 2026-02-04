@@ -244,14 +244,17 @@ export async function POST(
         if (body.linkedin_url) {
             (async () => {
                 try {
-                    console.log(`Starting social check for ${body.linkedin_url}...`);
+                    console.log(`Starting social check task for ${body.linkedin_url}...`);
+
+                    // Dynamic imports to keep the main thread light
                     const { scrapeLinkedIn } = await import('@/lib/social-scraper');
                     const { analyzeText } = await import('@/lib/text-analyzer');
 
-                    // Extract username from URL or use as is
+                    // 1. Parse Username
                     let username = body.linkedin_url;
                     try {
-                        const urlObj = new URL(body.linkedin_url);
+                        const urlStr = body.linkedin_url.startsWith('http') ? body.linkedin_url : `https://${body.linkedin_url}`;
+                        const urlObj = new URL(urlStr);
                         const parts = urlObj.pathname.split('/').filter(p => p);
                         if (parts.length > 0) {
                             // Handle /in/username vs just username
@@ -259,23 +262,31 @@ export async function POST(
                             if (inIndex !== -1 && inIndex + 1 < parts.length) {
                                 username = parts[inIndex + 1];
                             } else {
+                                // invalid or raw username path
                                 username = parts[parts.length - 1];
                             }
                         }
                     } catch (e) {
-                        // Not a valid URL, assume it's a username
+                        // Not a valid URL, assume the input is the username itself
+                        username = body.linkedin_url.replace(/\/$/, ''); // remove trailing slash
                     }
 
-                    console.log(`Scraping LinkedIn username: ${username}`);
-                    const posts = await scrapeLinkedIn(username, 5); // Limit to 5 for speed
+                    console.log(`Extracted LinkedIn username: ${username}`);
+
+                    // 2. Scrape Data
+                    // We use the same scraper function as the separate tool
+                    const posts = await scrapeLinkedIn(username, 5); // Limit to 5 for compatibility
 
                     if (posts && posts.length > 0) {
+                        // 3. Analyze Data
                         let totalProfane = 0;
                         let toxicitySum = 0;
                         const analyzedPosts: any[] = [];
 
                         posts.forEach(post => {
                             const analysis = analyzeText(post.text);
+
+                            // Store full text in DB for HR review, unlike the API which truncates
                             analyzedPosts.push({
                                 text: post.text,
                                 toxicity: analysis.toxicity
@@ -285,6 +296,7 @@ export async function POST(
                             toxicitySum += analysis.toxicity.toxicity;
                         });
 
+                        // 4. Generate Report
                         const avgToxicity = toxicitySum / Math.max(1, analyzedPosts.length);
                         let harassmentRisk = 'Low';
                         if (avgToxicity > 0.6) harassmentRisk = 'High';
@@ -304,16 +316,19 @@ export async function POST(
                             posts: analyzedPosts
                         };
 
+                        // 5. Store in DB
+                        // We update the application record with this json data
                         await prisma.application.update({
                             where: { id: application.id },
-                            data: { social_data: socialReport as any } // Cast to json
+                            data: { social_data: socialReport as any }
                         });
-                        console.log(`Social check complete for ${application.id}`);
+                        console.log(`Social check saved for application ${application.id}`);
                     } else {
-                        console.log(`No LinkedIn posts found for ${username}`);
+                        console.log(`No LinkedIn posts found for ${username}, skipping social data save.`);
                     }
 
                 } catch (socialError) {
+                    // Fail silently for the user, but log for admin
                     console.error('Social check background task failed:', socialError);
                 }
             })();

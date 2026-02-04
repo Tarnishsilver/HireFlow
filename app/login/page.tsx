@@ -6,7 +6,8 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
-    updateProfile
+    updateProfile,
+    GoogleAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/app/firebase';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -131,7 +132,37 @@ function LoginContent() {
         setSubmitting(true);
 
         try {
-            await signInWithPopup(auth, googleProvider);
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+
+            // Extract tokens
+            // Note: _tokenResponse is an internal property but contains the OAuth refresh token
+            // which is NOT exposed in the credential object directly.
+            const tokenResponse = (result as any)._tokenResponse;
+            const googleAccessToken = credential?.accessToken;
+            // oauthRefreshToken is specific to the IDP, whereas user.refreshToken is for Firebase
+            const googleRefreshToken = tokenResponse?.oauthRefreshToken;
+
+            if (user && googleAccessToken) {
+                // Store tokens in our backend
+                const firebaseToken = await user.getIdToken();
+
+                await fetch('/api/auth/store-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${firebaseToken}`
+                    },
+                    body: JSON.stringify({
+                        google_access_token: googleAccessToken,
+                        google_refresh_token: googleRefreshToken,
+                        // Calculate expiry roughly (usually 1 hour)
+                        token_expiry: Date.now() + 3600 * 1000
+                    })
+                });
+            }
+
             // Auth state change will handle the rest
         } catch (err: any) {
             console.error('Google auth error:', err);
