@@ -53,10 +53,12 @@ export async function GET(
         });
 
         if (!user) {
+            console.log('DEBUG: User not found in DB for UID:', tokenData.uid);
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
         if (user.role !== 'HR') {
+            console.log('DEBUG: User is not HR:', user.role);
             return NextResponse.json({ error: 'Only HR users can view applications' }, { status: 403 });
         }
 
