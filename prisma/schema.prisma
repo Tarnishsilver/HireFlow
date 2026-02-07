@@ -39,6 +39,10 @@ model User {
   google_refresh_token String?
   google_token_expiry  DateTime?
 
+  // Cache for dashboard data (emails and calendar events)
+  cached_dashboard_data Json?
+  last_dashboard_sync   DateTime?
+
   // Relations
   job_openings JobOpening[]
 

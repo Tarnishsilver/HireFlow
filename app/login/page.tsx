@@ -153,8 +153,8 @@ function LoginContent() {
                                     <Users className="h-6 w-6 text-blue-500" />
                                 </div>
                                 <div className="text-left">
-                                    <h3 className="font-semibold">I'm an HR Professional</h3>
-                                    <p className="text-sm text-muted-foreground">
+                                    <h3 className="font-bold">I'm an HR Professional</h3>
+                                    <p className="text-sm text-muted-foreground font-medium">
                                         Post job openings and manage applications
                                     </p>
                                 </div>
@@ -171,8 +171,8 @@ function LoginContent() {
                                     <Briefcase className="h-6 w-6 text-green-500" />
                                 </div>
                                 <div className="text-left">
-                                    <h3 className="font-semibold">I'm a Job Seeker</h3>
-                                    <p className="text-sm text-muted-foreground">
+                                    <h3 className="font-bold">I'm a Job Seeker</h3>
+                                    <p className="text-sm text-muted-foreground font-medium">
                                         Browse openings and apply for jobs
                                     </p>
                                 </div>
@@ -223,7 +223,7 @@ function LoginContent() {
                     <button
                         onClick={handleGoogleAuth}
                         disabled={submitting}
-                        className="w-full py-2.5 bg-card border border-border rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-card border-2 border-border rounded-lg font-bold hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <svg className="h-5 w-5" viewBox="0 0 24 24">
                             <path

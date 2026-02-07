@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { EmailPanel } from '@/components/dashboard/EmailPanel';
 import { CalendarPanel } from '@/components/dashboard/CalendarPanel';
-import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
+import { getDashboardData, createSingleCalendarEvent, getDashboardCache } from '@/app/actions';
 import {
     Briefcase, Plus, MapPin, Clock, Users, Loader2, LogOut, Eye,
     RefreshCw, ShieldAlert, Calendar, Mail, FileText, Flame, Share2
@@ -39,6 +39,7 @@ function DashboardContent() {
 
     // Dashboard data state
     const [data, setData] = useState<any>(null);
+    const [cacheLoaded, setCacheLoaded] = useState(false);
     const [loadingData, setLoadingData] = useState(false);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -48,9 +49,6 @@ function DashboardContent() {
     const [loadingJobs, setLoadingJobs] = useState(true);
 
     const searchParams = useSearchParams();
-    const defaultTab = searchParams.get('tab') as DashboardTab || 'overview';
-
-    // Tab state
     const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
     // Sync state with URL
@@ -60,6 +58,24 @@ function DashboardContent() {
             setActiveTab(tab);
         }
     }, [searchParams]);
+
+    // Load from cache on mount
+    useEffect(() => {
+        async function loadCache() {
+            if (user?.uid && !cacheLoaded) {
+                try {
+                    const cachedData = await getDashboardCache(user.uid);
+                    if (cachedData) {
+                        setData(cachedData);
+                    }
+                } catch (err) {
+                    console.error('Failed to load cache:', err);
+                }
+                setCacheLoaded(true);
+            }
+        }
+        loadCache();
+    }, [user?.uid, cacheLoaded]);
 
     // Protect route - redirect if not HR
     useEffect(() => {
@@ -74,7 +90,6 @@ function DashboardContent() {
             if (!dbUser?.id) return;
 
             try {
-                // Fetch all jobs for the organization (internal view)
                 const response = await fetch(`/api/job/list?internal=true`);
                 const data = await response.json();
 
@@ -95,11 +110,22 @@ function DashboardContent() {
         }
     }, [dbUser?.id, loading]);
 
-    // Connect to Google Workspace
+    // Connect to Google Workspace with dynamic scopes
     const handleConnectGoogle = async () => {
         setError(null);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
+            const workspaceProvider = new GoogleAuthProvider();
+            workspaceProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
+            workspaceProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+            workspaceProvider.addScope('https://www.googleapis.com/auth/calendar');
+            workspaceProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+
+            workspaceProvider.setCustomParameters({
+                access_type: 'offline',
+                prompt: 'consent'
+            });
+
+            const result = await signInWithPopup(auth, workspaceProvider);
             const credential = GoogleAuthProvider.credentialFromResult(result);
             const token = credential?.accessToken;
 
@@ -121,12 +147,14 @@ function DashboardContent() {
         setLoadingData(true);
         setError(null);
         try {
-            const result = await getDashboardData(token);
+            const result = await getDashboardData(token, user?.uid);
             setData(result);
         } catch (err: unknown) {
             console.error(err);
             const message = err instanceof Error ? err.message : 'Unknown error';
-            setError(message || 'Failed to fetch dashboard data');
+            if (!data) {
+                setError(message || 'Failed to fetch dashboard data');
+            }
         } finally {
             setLoadingData(false);
         }
@@ -374,67 +402,82 @@ function DashboardContent() {
                                 </Link>
                             </div>
                         </FadeIn>
-                        {!data && !loadingData && !error && (
-                            <FadeIn>
-                                <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
-                                    <div className="h-16 w-16 bg-primary/10 flex items-center justify-center rounded-2xl mb-6">
-                                        <Mail className="text-primary" size={32} />
+                        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 relative">
+                            {/* Connect Overlay if no data/cache - show only if not loading data and no data available */}
+                            {!data && !loadingData && !error && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-2xl border border-dashed border-border m-1">
+                                    <div className="flex flex-col items-center justify-center text-center p-8 bg-card rounded-2xl border border-border shadow-xl max-w-sm">
+                                        <div className="h-12 w-12 bg-primary/10 flex items-center justify-center rounded-xl mb-4">
+                                            <Mail className="text-primary" size={24} />
+                                        </div>
+                                        <h2 className="text-xl font-bold mb-2">Connect Workspace</h2>
+                                        <p className="text-xs text-muted-foreground mb-6">
+                                            Sync your emails and calendar to get AI-powered summaries and event suggestions.
+                                        </p>
+                                        <button
+                                            onClick={handleConnectGoogle}
+                                            className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-sm"
+                                        >
+                                            Connect Google Workspace
+                                        </button>
                                     </div>
-                                    <h2 className="text-2xl font-bold mb-2">Connect Google Workspace</h2>
-                                    <p className="text-muted-foreground max-w-md mb-8">
-                                        Sync your emails and calendar to get AI-powered summaries and event suggestions.
-                                    </p>
+                                </div>
+                            )}
+
+                            {/* Left Panel: Calendar (3/4 of screen) - Always present */}
+                            <div className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
+                                <CalendarPanel events={data?.events || []} loading={loadingData && !data} />
+                            </div>
+
+                            {/* Right Panel: Email Summary (1/4 of screen) - Always present */}
+                            <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
+                                <div className="mb-2 flex justify-between items-center">
+                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
                                     <button
-                                        onClick={handleConnectGoogle}
-                                        className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                        onClick={handleSync}
+                                        disabled={loadingData}
+                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
                                     >
-                                        Connect Google Workspace
+                                        <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
+                                        Sync
                                     </button>
                                 </div>
-                            </FadeIn>
+                                <div className="flex-1 min-h-0">
+                                    <EmailPanel emails={data?.emails || []} loading={loadingData && !data} onAddToCalendar={handleAddToCalendar} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sync Status Footer - inside Overview Tab */}
+                        {data?.last_sync && (
+                            <div className="mt-4 flex items-center justify-between px-1">
+                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                                    <Clock size={10} />
+                                    Last synced: {new Date(data.last_sync).toLocaleString()}
+                                </span>
+                                {loadingData && (
+                                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest flex items-center gap-2">
+                                        <RefreshCw size={10} className="animate-spin" />
+                                        Syncing fresh data...
+                                    </span>
+                                )}
+                            </div>
                         )}
 
                         {error && (
                             <FadeIn>
-                                <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-destructive/20">
-                                    <ShieldAlert className="text-destructive mb-4" size={48} />
-                                    <h2 className="text-xl font-bold mb-2 text-destructive">Connection Error</h2>
-                                    <p className="text-muted-foreground max-w-md mb-6">{error}</p>
+                                <div className="mt-4 flex flex-col items-center justify-center text-center p-6 bg-card rounded-2xl border border-destructive/20">
+                                    <ShieldAlert className="text-destructive mb-2" size={32} />
+                                    <h2 className="text-lg font-bold mb-1 text-destructive">Connection Error</h2>
+                                    <p className="text-xs text-muted-foreground max-w-md mb-4">{error}</p>
                                     <button
                                         onClick={handleConnectGoogle}
-                                        className="px-6 py-2 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors"
+                                        className="px-4 py-1.5 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors text-xs"
                                     >
                                         Reconnect
                                     </button>
                                 </div>
                             </FadeIn>
-                        )}
-
-                        {data && (
-                            <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-                                {/* Left Panel: Calendar (3/4 of screen) */}
-                                <div className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
-                                    <CalendarPanel events={data?.events || []} loading={loadingData} />
-                                </div>
-
-                                {/* Right Panel: Email Summary (1/4 of screen) */}
-                                <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
-                                    <div className="mb-2 flex justify-between items-center">
-                                        <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
-                                        <button
-                                            onClick={handleSync}
-                                            disabled={loadingData}
-                                            className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
-                                        >
-                                            <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
-                                            Sync
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 min-h-0">
-                                        <EmailPanel emails={data?.emails || []} loading={loadingData} onAddToCalendar={handleAddToCalendar} />
-                                    </div>
-                                </div>
-                            </div>
                         )}
                     </FadeInStagger>
                 ) : (

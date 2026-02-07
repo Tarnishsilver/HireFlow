@@ -71,7 +71,7 @@ export function CandidatesPanel({ applications, loading }: CandidatesPanelProps)
                 {applications.map((app) => (
                     <div
                         key={app.id}
-                        className="p-4 bg-background rounded-lg border border-border hover:border-primary/30 transition-colors"
+                        className="p-5 bg-card rounded-lg border-2 border-border hover:border-primary/50 transition-all shadow-sm"
                     >
                         {/* Candidate Info */}
                         <div className="flex items-start justify-between mb-3">
@@ -87,7 +87,7 @@ export function CandidatesPanel({ applications, loading }: CandidatesPanelProps)
 
                         {/* Social Analysis (New) */}
                         {app.social_data && (
-                            <div className="mb-3 p-3 bg-muted/30 rounded-lg border border-border">
+                            <div className="mb-4 p-4 bg-muted/50 rounded-lg border border-border">
                                 <h5 className="text-xs font-semibold mb-2 flex items-center justify-between">
                                     <span>Social Analysis ({app.social_data.platform})</span>
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${app.social_data.harassment_risk === 'High' ? 'bg-red-50 text-red-600 border-red-200' :

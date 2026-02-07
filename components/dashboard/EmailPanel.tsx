@@ -57,7 +57,7 @@ export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps
                 ) : (
                     <div className="divide-y divide-border">
                         {emails.map((email) => (
-                            <div key={email.id} className={`p-3 hover:bg-muted transition-colors bg-card ${categoryColors[email.category]}`}>
+                            <div key={email.id} className={`p-4 hover:bg-muted/50 transition-colors bg-card border-b border-border last:border-b-0 ${categoryColors[email.category]}`}>
                                 {/* Category Tag */}
                                 <div className="flex items-center justify-between mb-1.5">
                                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -82,7 +82,7 @@ export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps
 
                                 {/* Meeting Detection */}
                                 {email.suggested_event && (
-                                    <div className="mb-2 p-2 border border-dashed border-foreground/30 bg-muted/30">
+                                    <div className="mb-3 p-2.5 border border-dashed border-primary/40 bg-muted/50 rounded-sm">
                                         <div className="flex items-center gap-1 mb-1">
                                             <CalendarPlus size={10} />
                                             <span className="text-[9px] font-bold uppercase">Meeting</span>
