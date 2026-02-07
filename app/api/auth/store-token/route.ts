@@ -51,10 +51,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update user with Google OAuth token
-        const user = await prisma.user.update({
+        // Upsert user with Google OAuth token (creates if doesn't exist)
+        const user = await prisma.user.upsert({
             where: { firebase_uid: userData.uid },
-            data: {
+            create: {
+                firebase_uid: userData.uid,
+                email: userData.email,
+                role: 'HR',
+                google_access_token,
+                google_refresh_token: google_refresh_token || null,
+                google_token_expiry: token_expiry ? new Date(token_expiry) : null,
+            },
+            update: {
                 google_access_token,
                 google_refresh_token: google_refresh_token || null,
                 google_token_expiry: token_expiry ? new Date(token_expiry) : null,
