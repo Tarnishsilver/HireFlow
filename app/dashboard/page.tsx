@@ -219,7 +219,7 @@ function DashboardContent() {
                 console.log('[Dashboard] No stored token, prompting for OAuth');
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
-                token = credential?.accessToken;
+                token = credential?.accessToken || null;
 
                 if (!token) throw new Error("Failed to get access token");
                 setAccessToken(token);
