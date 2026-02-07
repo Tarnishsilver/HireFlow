@@ -12,10 +12,18 @@ interface EmailPanelProps {
 }
 
 const categoryColors: Record<string, string> = {
-    Interviews: 'border-l-4 border-l-blue-500',
-    Offers: 'border-l-4 border-l-green-500',
-    Onboarding: 'border-l-4 border-l-yellow-500',
-    'Internal HR': 'border-l-4 border-l-muted-foreground',
+    Interviews: 'border-l-[4px] border-l-[#3b82f6]', // Blue
+    Offers: 'border-l-[4px] border-l-[#22c55e]',     // Green
+    Onboarding: 'border-l-[4px] border-l-[#eab308]', // Yellow
+    'Internal HR': 'border-l-[4px] border-l-[#a855f7]', // Purple
+    Rejections: 'border-l-[4px] border-l-[#ef4444]', // Red
+    Applications: 'border-l-[4px] border-l-[#06b6d4]', // Cyan
+    Scheduling: 'border-l-[4px] border-l-[#f97316]', // Orange
+    General: 'border-l-[4px] border-l-[#6b7280]',    // Gray
+};
+
+const getCategoryColor = (category: string): string => {
+    return categoryColors[category] || 'border-l-[4px] border-l-[#6b7280]';
 };
 
 export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps) => {
@@ -57,7 +65,7 @@ export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps
                 ) : (
                     <div className="divide-y divide-border">
                         {emails.map((email) => (
-                            <div key={email.id} className={`p-3 hover:bg-muted transition-colors bg-card ${categoryColors[email.category]}`}>
+                            <div key={email.id} className={`p-4 hover:bg-muted/50 transition-colors bg-card border-b border-border last:border-b-0 ${getCategoryColor(email.category)}`}>
                                 {/* Category Tag */}
                                 <div className="flex items-center justify-between mb-1.5">
                                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -82,7 +90,7 @@ export const EmailPanel = ({ emails, loading, onAddToCalendar }: EmailPanelProps
 
                                 {/* Meeting Detection */}
                                 {email.suggested_event && (
-                                    <div className="mb-2 p-2 border border-dashed border-foreground/30 bg-muted/30">
+                                    <div className="mb-3 p-2.5 border border-dashed border-primary/40 bg-muted/50 rounded-sm">
                                         <div className="flex items-center gap-1 mb-1">
                                             <CalendarPlus size={10} />
                                             <span className="text-[9px] font-bold uppercase">Meeting</span>

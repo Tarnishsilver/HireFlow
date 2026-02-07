@@ -6,7 +6,7 @@ import { EmailPanel } from './dashboard/EmailPanel';
 import { CalendarPanel } from './dashboard/CalendarPanel';
 import { CandidatesPanel } from './dashboard/CandidatesPanel';
 import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
-import { ShieldAlert, RefreshCw, Lock, LogOut, Users } from 'lucide-react';
+import { RefreshCw, Lock, LogOut, Users } from 'lucide-react';
 import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, User, signOut, GoogleAuthProvider } from 'firebase/auth';
@@ -22,26 +22,31 @@ export default function DashboardPage() {
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [applications, setApplications] = useState<any[]>([]);
     const [loadingApplications, setLoadingApplications] = useState(false);
+    const [lastSync, setLastSync] = useState<Date | null>(null);
     const { user: authUser } = useAuth();
+
+    // Cache key for localStorage
+    const getCacheKey = (uid: string) => `hrtech_dashboard_cache_${uid}`;
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => {
             setUser(currentUser);
             setLoadingAuth(false);
+
+            // Load cached data immediately if user is logged in
             if (currentUser) {
-                // Determine if we need to fetch data immediately or wait for user interaction/token
-                // For simplicity, we'll try to fetch data if we can get a token silently, 
-                // but usually we get the token from the result of the sign-in or force a refresh.
-                // However, the Google Access Token for API calls is best obtained at login time via result.credential.
-                // If the user is already logged in (persistence), we might need to re-authenticate to get a fresh OAuth access token 
-                // because Firebase Auth ID token is different from Google OAuth Access Token.
-                // But for now, let's try to see if we can get a token. 
-                // Actually, the best way with Firebase to get a Google API Access Token after page reload is unclear without re-auth.
-                // We will handle the "Initial Fetch" only if we just logged in or if we can prompt re-auth.
-                // Strategy: We will add a "Connect Google Workspace" button if we don't have the data yet, 
-                // or we rely on the handleLogin to fetch it.
-                // For persistent login, we might not have the provider access token readily available without a re-prompt if we didn't store it.
-                // Let's modify the flow: Login -> Get Token -> Fetch Data.
+                const cacheKey = getCacheKey(currentUser.uid);
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) {
+                    try {
+                        const parsedCache = JSON.parse(cached);
+                        setData(parsedCache.data);
+                        setLastSync(new Date(parsedCache.timestamp));
+                        console.log('[Dashboard] Loaded cached data from', new Date(parsedCache.timestamp));
+                    } catch (e) {
+                        console.error('Failed to parse cached data:', e);
+                    }
+                }
             }
         });
         return () => unsubscribe();
@@ -71,12 +76,23 @@ export default function DashboardPage() {
         setData(null);
     };
 
-    const fetchData = async (accessToken: string) => {
+    const fetchData = async (token: string) => {
         setLoadingData(true);
         setError(null);
         try {
-            const result = await getDashboardData(accessToken);
+            const result = await getDashboardData(token);
             setData(result);
+            setLastSync(new Date());
+
+            // Save to localStorage cache
+            if (user) {
+                const cacheKey = getCacheKey(user.uid);
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    data: result,
+                    timestamp: Date.now()
+                }));
+                console.log('[Dashboard] Cached data to localStorage');
+            }
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'Failed to fetch dashboard data. Your session may have expired.');
@@ -120,23 +136,38 @@ export default function DashboardPage() {
         if (!user) return;
         setLoadingData(true);
         try {
-            // Need to get access token again or store it. 
-            // Current flow: we only get token on login. 
-            // We should store it in state or context for the session.
-            // For now, let's assume we re-acquire it silently or alert user if missing.
+            let token = accessToken;
 
-            // To properly get the token without re-login every time, we should have stored it.
-            // But since we didn't implement session storage for the token in the previous step,
-            // we might need to prompt login again OR rely on the fact we just logged in.
-            // Let's prompt for re-auth if we don't have a token in a REF or State that persists.
+            // First, try to get stored token from backend (from HR login)
+            if (!token) {
+                const firebaseToken = await user.getIdToken();
+                const tokenRes = await fetch('/api/auth/store-token', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${firebaseToken}`
+                    }
+                });
 
-            // NOTE: For this demo, we will trigger the popup to get a fresh token for the action.
-            const result = await signInWithPopup(auth, googleProvider);
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            const token = credential?.accessToken;
+                if (tokenRes.ok) {
+                    const tokenData = await tokenRes.json();
+                    if (tokenData.hasToken && tokenData.google_access_token) {
+                        token = tokenData.google_access_token;
+                        setAccessToken(token);
+                        console.log('[Dashboard] Using stored Google token');
+                    }
+                }
+            }
 
-            if (!token) throw new Error("Failed to get access token");
-            setAccessToken(token);
+            // Only if no stored token, prompt for re-auth
+            if (!token) {
+                console.log('[Dashboard] No stored token, prompting for OAuth');
+                const result = await signInWithPopup(auth, googleProvider);
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                token = credential?.accessToken || null;
+
+                if (!token) throw new Error("Failed to get access token");
+                setAccessToken(token);
+            }
 
             const res = await import('@/app/actions').then(mod => mod.syncEmailsToCalendar(token));
 
@@ -150,6 +181,56 @@ export default function DashboardPage() {
             alert("Failed to sync: " + err.message);
         } finally {
             setLoadingData(false);
+        }
+    };
+
+    const handleNewEvent = async () => {
+        // Prompt user for event details
+        const title = prompt('Event title:');
+        if (!title) return;
+
+        const dateStr = prompt('Event date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+        if (!dateStr) return;
+
+        const timeStr = prompt('Event time (HH:MM):', '10:00');
+        if (!timeStr) return;
+
+        const duration = prompt('Duration in minutes:', '60');
+
+        try {
+            let token = accessToken;
+
+            // If we don't have a token, we need to re-authenticate
+            if (!token) {
+                const result = await signInWithPopup(auth, googleProvider);
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                token = credential?.accessToken || null;
+                if (token) setAccessToken(token);
+            }
+
+            if (!token) {
+                alert('Please sign in again to add events to calendar.');
+                return;
+            }
+
+            const startTime = new Date(`${dateStr}T${timeStr}:00`);
+            const durationMs = (parseInt(duration || '60')) * 60 * 1000;
+            const endTime = new Date(startTime.getTime() + durationMs);
+
+            await createSingleCalendarEvent(token, {
+                summary: title,
+                description: 'Created via HR Dashboard',
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+            });
+
+            alert(`✅ Added "${title}" to your Google Calendar!`);
+
+            // Refresh calendar data
+            if (token) fetchData(token);
+        } catch (err: any) {
+            console.error('Failed to create event:', err);
+            alert('Failed to create event: ' + err.message);
         }
     };
 
@@ -235,94 +316,74 @@ export default function DashboardPage() {
                             </div>
                         )}
 
-                        {/* If we are logged in but don't have data, we might need to re-sync or just show a loading state if we are fetching.
-                            If we are logged in and have no data and not loading, it usually means we need to "Connect" to get the access token again 
-                            because we didn't store it (it's not persisted in Firebase Auth user object).
-                         */}
-                        {!data && !loadingData && !error && (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
-                                <h2 className="text-2xl font-bold mb-2">Welcome, {user.displayName}</h2>
-                                <p className="text-muted-foreground max-w-md mb-8">
-                                    We need to sync with your Google Workspace to display your emails and calendar.
-                                </p>
-                                <button
-                                    onClick={handleLogin}
-                                    className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-sm hover:opacity-90 transition-all"
-                                >
-                                    Sync Data
-                                </button>
-                                <button
-                                    onClick={handleLogout}
-                                    className="mt-4 text-sm text-muted-foreground hover:text-foreground underline"
-                                >
-                                    Sign Out
-                                </button>
-                            </div>
-                        )}
+                        {/* Always show dashboard layout - calendar visible even before sync */}
+                        <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
+                            {/* Left Panel: Calendar (2/4 of screen) - ALWAYS VISIBLE */}
+                            <section className="flex-[2] min-w-0 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                <div className="mb-2 flex justify-between items-center">
+                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Calendar</h3>
+                                    {lastSync && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                            Last synced: {lastSync.toLocaleTimeString()}
+                                        </span>
+                                    )}
+                                </div>
+                                <CalendarPanel events={data?.events || []} loading={loadingData} onAddEvent={handleNewEvent} />
+                            </section>
 
-                        {/* Error State */}
-                        {error && (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-destructive/20 select-none">
-                                <ShieldAlert className="text-destructive mb-4" size={48} />
-                                <h2 className="text-xl font-bold mb-2 text-destructive">Connection Error</h2>
-                                <p className="text-muted-foreground max-w-md mb-6">{error}</p>
-                                <button
-                                    onClick={handleLogin}
-                                    className="px-6 py-2 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors"
-                                >
-                                    Reconnect
-                                </button>
-                            </div>
-                        )}
+                            {/* Middle Panel: Candidates (1/4 of screen) */}
+                            <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                <div className="mb-2 flex justify-between items-center">
+                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1 flex items-center gap-1">
+                                        <Users size={12} />
+                                        Candidates
+                                    </h3>
+                                    <button
+                                        onClick={fetchApplications}
+                                        disabled={loadingApplications}
+                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
+                                    >
+                                        <RefreshCw size={10} className={loadingApplications ? "animate-spin" : ""} />
+                                        Refresh
+                                    </button>
+                                </div>
+                                <div className="flex-1 min-h-0">
+                                    <CandidatesPanel applications={applications} loading={loadingApplications} />
+                                </div>
+                            </section>
 
-                        {/* Data Display - Calendar 2/4, Candidates 1/4, Emails 1/4 */}
-                        {data && (
-                            <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
-                                {/* Left Panel: Calendar (2/4 of screen) */}
-                                <section className="flex-[2] min-w-0 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
-                                    <CalendarPanel events={data?.events || []} loading={loadingData} />
-                                </section>
-
-                                {/* Middle Panel: Candidates (1/4 of screen) */}
-                                <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
-                                    <div className="mb-2 flex justify-between items-center">
-                                        <h3 className="font-bold text-xs uppercase tracking-wider px-1 flex items-center gap-1">
-                                            <Users size={12} />
-                                            Candidates
-                                        </h3>
-                                        <button
-                                            onClick={fetchApplications}
-                                            disabled={loadingApplications}
-                                            className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
-                                        >
-                                            <RefreshCw size={10} className={loadingApplications ? "animate-spin" : ""} />
-                                            Refresh
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 min-h-0">
-                                        <CandidatesPanel applications={applications} loading={loadingApplications} />
-                                    </div>
-                                </section>
-
-                                {/* Right Panel: Email Summary (1/4 of screen) */}
-                                <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
-                                    <div className="mb-2 flex justify-between items-center">
-                                        <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
-                                        <button
-                                            onClick={handleSync}
-                                            disabled={loadingData}
-                                            className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
-                                        >
-                                            <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
-                                            Sync
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 min-h-0">
+                            {/* Right Panel: Email Summary (1/4 of screen) */}
+                            <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
+                                <div className="mb-2 flex justify-between items-center">
+                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
+                                    <button
+                                        onClick={!data ? handleLogin : handleSync}
+                                        disabled={loadingData}
+                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
+                                    >
+                                        <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
+                                        {!data ? 'Sync Now' : 'Sync'}
+                                    </button>
+                                </div>
+                                <div className="flex-1 min-h-0">
+                                    {!data && !loadingData ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-card border border-border rounded-lg">
+                                            <p className="text-sm text-muted-foreground mb-4">
+                                                Sync with Google to load emails
+                                            </p>
+                                            <button
+                                                onClick={handleLogin}
+                                                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90"
+                                            >
+                                                Sync Data
+                                            </button>
+                                        </div>
+                                    ) : (
                                         <EmailPanel emails={data?.emails || []} loading={loadingData} onAddToCalendar={handleAddToCalendar} />
-                                    </div>
-                                </section>
-                            </div>
-                        )}
+                                    )}
+                                </div>
+                            </section>
+                        </div>
                     </>
                 )}
             </main>

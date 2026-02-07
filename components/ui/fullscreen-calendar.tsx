@@ -203,8 +203,8 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                                         !isEqual(day, selectedDay) &&
                                         !isToday(day) &&
                                         !isSameMonth(day, firstDayCurrentMonth) &&
-                                        "bg-muted/50 text-muted-foreground",
-                                        "relative flex flex-col border-b border-r border-border hover:bg-muted/30 cursor-pointer min-h-[100px]",
+                                        "bg-muted/80 text-muted-foreground/60",
+                                        "relative flex flex-col border-b border-r border-border hover:bg-muted/40 cursor-pointer min-h-[100px]",
                                     )}
                                 >
                                     <header className="flex items-center justify-between p-2">
@@ -239,10 +239,10 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                                                         <div
                                                             key={event.id}
                                                             className={cn(
-                                                                "flex flex-col border-l-2 px-1.5 py-1 text-[10px] leading-tight mb-1 rounded-r-sm",
+                                                                "flex flex-col border-l-4 px-2 py-1.5 text-[10px] leading-tight mb-1 rounded-r-md transition-all",
                                                                 event.category === 'Interview'
-                                                                    ? "border-primary bg-primary/20"
-                                                                    : "border-foreground/50 bg-foreground/10"
+                                                                    ? "border-primary bg-primary/20 hover:bg-primary/30"
+                                                                    : "border-muted-foreground/50 bg-muted hover:bg-muted/80"
                                                             )}
                                                         >
                                                             <p className={cn(

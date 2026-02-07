@@ -37,7 +37,7 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
     // Protect route - HR only
     useEffect(() => {
         if (!authLoading && (!user || role !== 'HR')) {
-            router.push('/login');
+            router.push('/');
         }
     }, [user, role, authLoading, router]);
 

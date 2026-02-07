@@ -1,105 +1,71 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth/AuthContext';
-import { Loader2, Briefcase, Users, ArrowRight } from 'lucide-react';
-import { FadeIn, FadeInStagger } from '@/components/animations/FadeIn';
+import Link from 'next/link';
+import { Briefcase, Users, Zap, ArrowRight } from 'lucide-react';
 
-export default function Home() {
-  const router = useRouter();
-  const { user, role, loading } = useAuth();
-
-  // If already logged in, redirect to appropriate page
-  useEffect(() => {
-    if (!loading && user && role) {
-      if (role === 'HR') {
-        router.push('/dashboard');
-      } else {
-        router.push('/jobopening');
-      }
-    }
-  }, [user, role, loading, router]);
-
-  // Show loading while checking auth state
-  if (loading) {
+export default function HeroPage() {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // If logged in but no role, push to appropriate default
-  if (user && role) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <FadeInStagger className="w-full max-w-xl text-center">
-        {/* Hero Header */}
-        <FadeIn>
-          <div className="inline-flex items-center justify-center h-20 w-20 bg-primary/10 rounded-3xl mb-6">
-            <Briefcase className="h-10 w-10 text-primary" />
-          </div>
-        </FadeIn>
-
-        <FadeIn>
-          <h1 className="text-4xl font-bold tracking-tight mb-3">
-            Welcome to <span className="text-primary">HR Tech</span>
-          </h1>
-        </FadeIn>
-
-        <FadeIn>
-          <p className="text-muted-foreground text-lg mb-10">
-            Streamline your hiring process with intelligent automation
-          </p>
-        </FadeIn>
-
-        {/* Login Options */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FadeIn>
-            <button
-              onClick={() => router.push('/hrlogin')}
-              className="group w-full flex flex-col items-center gap-3 p-6 bg-card border-2 border-border rounded-2xl hover:border-blue-500 hover:bg-blue-500/5 transition-all duration-200"
-            >
-              <div className="h-14 w-14 bg-blue-500/10 rounded-xl flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
-                <Users className="h-7 w-7 text-blue-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">HR Professional</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Manage jobs, emails & calendar
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+            {/* Logo & Title */}
+            <div className="text-center mb-12">
+                <div className="inline-flex items-center justify-center h-16 w-16 bg-primary/10 rounded-2xl mb-4">
+                    <Briefcase className="h-8 w-8 text-primary" />
+                </div>
+                <h1 className="text-4xl font-bold mb-2">HR Tech</h1>
+                <p className="text-muted-foreground text-lg">
+                    Streamline your hiring process
                 </p>
-              </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
-            </button>
-          </FadeIn>
+            </div>
 
-          <FadeIn>
-            <button
-              onClick={() => router.push('/userlogin')}
-              className="group w-full flex flex-col items-center gap-3 p-6 bg-card border-2 border-border rounded-2xl hover:border-green-500 hover:bg-green-500/5 transition-all duration-200"
-            >
-              <div className="h-14 w-14 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
-                <Briefcase className="h-7 w-7 text-green-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">Job Seeker</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Browse & apply for jobs
-                </p>
-              </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-green-500 group-hover:translate-x-1 transition-all" />
-            </button>
-          </FadeIn>
+            {/* Login Options */}
+            <div className="w-full max-w-lg grid gap-4">
+                {/* HR Login */}
+                <Link
+                    href="/hrlogin"
+                    className="group flex items-center gap-4 p-6 bg-card border-2 border-border rounded-xl hover:border-blue-500 hover:bg-blue-500/5 transition-all"
+                >
+                    <div className="h-14 w-14 bg-blue-500/10 rounded-xl flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                        <Users className="h-7 w-7 text-blue-500" />
+                    </div>
+                    <div className="flex-1">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            HR Professional
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Full access to Gmail, Calendar & Dashboard
+                        </p>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                </Link>
+
+                {/* User Login */}
+                <Link
+                    href="/userlogin"
+                    className="group flex items-center gap-4 p-6 bg-card border-2 border-border rounded-xl hover:border-green-500 hover:bg-green-500/5 transition-all"
+                >
+                    <div className="h-14 w-14 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                        <Briefcase className="h-7 w-7 text-green-500" />
+                    </div>
+                    <div className="flex-1">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            Job Seeker
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                <Zap className="h-3 w-3" />
+                                Quick
+                            </span>
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Browse openings and apply instantly
+                        </p>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-green-500 transition-colors" />
+                </Link>
+            </div>
+
+            {/* Footer */}
+            <p className="mt-12 text-xs text-muted-foreground">
+                By continuing, you agree to our Terms of Service
+            </p>
         </div>
-      </FadeInStagger>
-    </div>
-  );
+    );
 }

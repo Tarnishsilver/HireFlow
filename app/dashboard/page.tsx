@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { EmailPanel } from '@/components/dashboard/EmailPanel';
 import { CalendarPanel } from '@/components/dashboard/CalendarPanel';
-import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
+import { getDashboardData, createSingleCalendarEvent, getDashboardCache } from '@/app/actions';
 import {
     Briefcase, Plus, MapPin, Clock, Users, Loader2, LogOut, Eye,
     RefreshCw, ShieldAlert, Calendar, Mail, FileText, Flame, Share2
@@ -39,6 +39,7 @@ function DashboardContent() {
 
     // Dashboard data state
     const [data, setData] = useState<any>(null);
+    const [cacheLoaded, setCacheLoaded] = useState(false);
     const [loadingData, setLoadingData] = useState(false);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -48,9 +49,6 @@ function DashboardContent() {
     const [loadingJobs, setLoadingJobs] = useState(true);
 
     const searchParams = useSearchParams();
-    const defaultTab = searchParams.get('tab') as DashboardTab || 'overview';
-
-    // Tab state
     const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
     // Sync state with URL
@@ -61,10 +59,58 @@ function DashboardContent() {
         }
     }, [searchParams]);
 
+    // Load from cache on mount
+    useEffect(() => {
+        async function loadCache() {
+            if (user?.uid && !cacheLoaded) {
+                try {
+                    const cachedData = await getDashboardCache(user.uid);
+                    if (cachedData) {
+                        setData(cachedData);
+                    }
+                } catch (err) {
+                    console.error('Failed to load cache:', err);
+                }
+                setCacheLoaded(true);
+            }
+        }
+        loadCache();
+    }, [user?.uid, cacheLoaded]);
+
+    // Auto-fetch data using stored token on mount (if no cached data)
+    useEffect(() => {
+        async function autoFetchWithStoredToken() {
+            if (!user || data || loadingData || accessToken) return;
+
+            try {
+                const firebaseToken = await user.getIdToken();
+                const tokenRes = await fetch('/api/auth/store-token', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
+                });
+
+                if (tokenRes.ok) {
+                    const tokenData = await tokenRes.json();
+                    if (tokenData.hasToken && tokenData.google_access_token) {
+                        console.log('[Dashboard] Auto-fetching with stored token');
+                        setAccessToken(tokenData.google_access_token);
+                        fetchDashboardData(tokenData.google_access_token);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to auto-fetch:', err);
+            }
+        }
+
+        // Wait a bit for cache to load first
+        const timer = setTimeout(autoFetchWithStoredToken, 500);
+        return () => clearTimeout(timer);
+    }, [user, data, loadingData, accessToken]);
+
     // Protect route - redirect if not HR
     useEffect(() => {
         if (!loading && (!user || role !== 'HR')) {
-            router.push('/login');
+            router.push('/');
         }
     }, [user, role, loading, router]);
 
@@ -74,7 +120,6 @@ function DashboardContent() {
             if (!dbUser?.id) return;
 
             try {
-                // Fetch all jobs for the organization (internal view)
                 const response = await fetch(`/api/job/list?internal=true`);
                 const data = await response.json();
 
@@ -95,11 +140,22 @@ function DashboardContent() {
         }
     }, [dbUser?.id, loading]);
 
-    // Connect to Google Workspace
+    // Connect to Google Workspace with dynamic scopes
     const handleConnectGoogle = async () => {
         setError(null);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
+            const workspaceProvider = new GoogleAuthProvider();
+            workspaceProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
+            workspaceProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+            workspaceProvider.addScope('https://www.googleapis.com/auth/calendar');
+            workspaceProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+
+            workspaceProvider.setCustomParameters({
+                access_type: 'offline',
+                prompt: 'consent'
+            });
+
+            const result = await signInWithPopup(auth, workspaceProvider);
             const credential = GoogleAuthProvider.credentialFromResult(result);
             const token = credential?.accessToken;
 
@@ -121,12 +177,14 @@ function DashboardContent() {
         setLoadingData(true);
         setError(null);
         try {
-            const result = await getDashboardData(token);
+            const result = await getDashboardData(token, user?.uid);
             setData(result);
         } catch (err: unknown) {
             console.error(err);
             const message = err instanceof Error ? err.message : 'Unknown error';
-            setError(message || 'Failed to fetch dashboard data');
+            if (!data) {
+                setError(message || 'Failed to fetch dashboard data');
+            }
         } finally {
             setLoadingData(false);
         }
@@ -136,12 +194,36 @@ function DashboardContent() {
     const handleSync = async () => {
         setLoadingData(true);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            const token = credential?.accessToken;
+            let token = accessToken;
 
-            if (!token) throw new Error("Failed to get access token");
-            setAccessToken(token);
+            // First try to get stored token from backend
+            if (!token && user) {
+                const firebaseToken = await user.getIdToken();
+                const tokenRes = await fetch('/api/auth/store-token', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
+                });
+
+                if (tokenRes.ok) {
+                    const tokenData = await tokenRes.json();
+                    if (tokenData.hasToken && tokenData.google_access_token) {
+                        token = tokenData.google_access_token;
+                        setAccessToken(token);
+                        console.log('[Dashboard] Using stored token for sync');
+                    }
+                }
+            }
+
+            // Fallback to OAuth popup only if no stored token
+            if (!token) {
+                console.log('[Dashboard] No stored token, prompting for OAuth');
+                const result = await signInWithPopup(auth, googleProvider);
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                token = credential?.accessToken;
+
+                if (!token) throw new Error("Failed to get access token");
+                setAccessToken(token);
+            }
 
             const res = await import('@/app/actions').then(mod => mod.syncEmailsToCalendar(token));
 
@@ -165,6 +247,24 @@ function DashboardContent() {
         try {
             let token = accessToken;
 
+            // First try to get stored token from backend
+            if (!token && user) {
+                const firebaseToken = await user.getIdToken();
+                const tokenRes = await fetch('/api/auth/store-token', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
+                });
+
+                if (tokenRes.ok) {
+                    const tokenData = await tokenRes.json();
+                    if (tokenData.hasToken && tokenData.google_access_token) {
+                        token = tokenData.google_access_token;
+                        setAccessToken(token);
+                    }
+                }
+            }
+
+            // Fallback to OAuth popup only if no stored token
             if (!token) {
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -197,6 +297,73 @@ function DashboardContent() {
             console.error('Failed to add event:', err);
             const message = err instanceof Error ? err.message : 'Unknown error';
             alert('Failed to add event to calendar: ' + message);
+        }
+    };
+
+    // Handle creating a new calendar event
+    const handleNewEvent = async () => {
+        const title = prompt('Event title:');
+        if (!title) return;
+
+        const dateStr = prompt('Event date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+        if (!dateStr) return;
+
+        const timeStr = prompt('Event time (HH:MM):', '10:00');
+        if (!timeStr) return;
+
+        const duration = prompt('Duration in minutes:', '60');
+
+        try {
+            let token = accessToken;
+
+            // First try to get stored token from backend
+            if (!token && user) {
+                const firebaseToken = await user.getIdToken();
+                const tokenRes = await fetch('/api/auth/store-token', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
+                });
+
+                if (tokenRes.ok) {
+                    const tokenData = await tokenRes.json();
+                    if (tokenData.hasToken && tokenData.google_access_token) {
+                        token = tokenData.google_access_token;
+                        setAccessToken(token);
+                    }
+                }
+            }
+
+            // Fallback to OAuth popup if no stored token
+            if (!token) {
+                const result = await signInWithPopup(auth, googleProvider);
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                token = credential?.accessToken || null;
+                if (token) setAccessToken(token);
+            }
+
+            if (!token) {
+                alert('Please sign in again to add events to calendar.');
+                return;
+            }
+
+            const startTime = new Date(`${dateStr}T${timeStr}:00`);
+            const durationMs = (parseInt(duration || '60')) * 60 * 1000;
+            const endTime = new Date(startTime.getTime() + durationMs);
+
+            await createSingleCalendarEvent(token, {
+                summary: title,
+                description: 'Created via HR Dashboard',
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+            });
+
+            alert(`✅ Added "${title}" to your Google Calendar!`);
+
+            if (token) fetchDashboardData(token);
+        } catch (err: unknown) {
+            console.error('Failed to create event:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            alert('Failed to create event: ' + message);
         }
     };
 
@@ -374,67 +541,62 @@ function DashboardContent() {
                                 </Link>
                             </div>
                         </FadeIn>
-                        {!data && !loadingData && !error && (
-                            <FadeIn>
-                                <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
-                                    <div className="h-16 w-16 bg-primary/10 flex items-center justify-center rounded-2xl mb-6">
-                                        <Mail className="text-primary" size={32} />
-                                    </div>
-                                    <h2 className="text-2xl font-bold mb-2">Connect Google Workspace</h2>
-                                    <p className="text-muted-foreground max-w-md mb-8">
-                                        Sync your emails and calendar to get AI-powered summaries and event suggestions.
-                                    </p>
+                        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 relative">
+
+                            {/* Left Panel: Calendar (3/4 of screen) - Always present */}
+                            <div className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
+                                <CalendarPanel events={data?.events || []} loading={loadingData && !data} onAddEvent={handleNewEvent} />
+                            </div>
+
+                            {/* Right Panel: Email Summary (1/4 of screen) - Always present */}
+                            <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
+                                <div className="mb-2 flex justify-between items-center">
+                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
                                     <button
-                                        onClick={handleConnectGoogle}
-                                        className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                        onClick={handleSync}
+                                        disabled={loadingData}
+                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
                                     >
-                                        Connect Google Workspace
+                                        <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
+                                        Sync
                                     </button>
                                 </div>
-                            </FadeIn>
+                                <div className="flex-1 min-h-0">
+                                    <EmailPanel emails={data?.emails || []} loading={loadingData && !data} onAddToCalendar={handleAddToCalendar} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sync Status Footer - inside Overview Tab */}
+                        {data?.last_sync && (
+                            <div className="mt-4 flex items-center justify-between px-1">
+                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                                    <Clock size={10} />
+                                    Last synced: {new Date(data.last_sync).toLocaleString()}
+                                </span>
+                                {loadingData && (
+                                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest flex items-center gap-2">
+                                        <RefreshCw size={10} className="animate-spin" />
+                                        Syncing fresh data...
+                                    </span>
+                                )}
+                            </div>
                         )}
 
                         {error && (
                             <FadeIn>
-                                <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-destructive/20">
-                                    <ShieldAlert className="text-destructive mb-4" size={48} />
-                                    <h2 className="text-xl font-bold mb-2 text-destructive">Connection Error</h2>
-                                    <p className="text-muted-foreground max-w-md mb-6">{error}</p>
+                                <div className="mt-4 flex flex-col items-center justify-center text-center p-6 bg-card rounded-2xl border border-destructive/20">
+                                    <ShieldAlert className="text-destructive mb-2" size={32} />
+                                    <h2 className="text-lg font-bold mb-1 text-destructive">Connection Error</h2>
+                                    <p className="text-xs text-muted-foreground max-w-md mb-4">{error}</p>
                                     <button
                                         onClick={handleConnectGoogle}
-                                        className="px-6 py-2 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors"
+                                        className="px-4 py-1.5 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors text-xs"
                                     >
                                         Reconnect
                                     </button>
                                 </div>
                             </FadeIn>
-                        )}
-
-                        {data && (
-                            <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-                                {/* Left Panel: Calendar (3/4 of screen) */}
-                                <div className="flex-[3] min-w-0 h-[calc(100vh-180px)] flex flex-col">
-                                    <CalendarPanel events={data?.events || []} loading={loadingData} />
-                                </div>
-
-                                {/* Right Panel: Email Summary (1/4 of screen) */}
-                                <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-180px)] flex flex-col">
-                                    <div className="mb-2 flex justify-between items-center">
-                                        <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
-                                        <button
-                                            onClick={handleSync}
-                                            disabled={loadingData}
-                                            className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
-                                        >
-                                            <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
-                                            Sync
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 min-h-0">
-                                        <EmailPanel emails={data?.emails || []} loading={loadingData} onAddToCalendar={handleAddToCalendar} />
-                                    </div>
-                                </div>
-                            </div>
                         )}
                     </FadeInStagger>
                 ) : (
@@ -543,7 +705,7 @@ function DashboardContent() {
                     <div className="h-3 w-px bg-border"></div>
                     <div>Cloud sync: {data ? 'Online' : 'Pending'}</div>
                 </div>
-                <div className="ml-auto">© 2026 HR Pulse Enterprise</div>
+
             </FadeIn>
         </div>
     );

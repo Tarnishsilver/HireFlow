@@ -29,7 +29,7 @@ export default function CreateJobPage() {
     // Protect route
     useEffect(() => {
         if (!loading && (!user || role !== 'HR')) {
-            router.push('/login');
+            router.push('/');
         }
     }, [user, role, loading, router]);
 

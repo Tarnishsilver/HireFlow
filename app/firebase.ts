@@ -27,29 +27,40 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 
 // ============================================
-// HR Provider - Full Gmail & Calendar permissions
+// HR PROVIDER - Full Gmail + Calendar access
 // ============================================
-export const googleProviderHR = new GoogleAuthProvider();
-googleProviderHR.addScope('https://www.googleapis.com/auth/gmail.readonly');
-googleProviderHR.addScope('https://www.googleapis.com/auth/gmail.send');
-googleProviderHR.addScope('https://www.googleapis.com/auth/gmail.compose');
-googleProviderHR.addScope('https://www.googleapis.com/auth/calendar');
-googleProviderHR.addScope('https://www.googleapis.com/auth/calendar.events');
-googleProviderHR.addScope('https://www.googleapis.com/auth/userinfo.email');
-// Force consent for HR to capture refresh token for background API access
-googleProviderHR.setCustomParameters({
+export const hrGoogleProvider = new GoogleAuthProvider();
+// Gmail permissions
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/gmail.modify');
+// Calendar permissions
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/calendar');
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+// Basic profile
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+hrGoogleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+
+// Force consent for HR to get refresh token (needed for Gmail/Calendar APIs)
+hrGoogleProvider.setCustomParameters({
     access_type: 'offline',
     prompt: 'consent'
 });
 
 // ============================================
-// User Provider - Minimal OAuth for fast login
+// USER PROVIDER - Minimal OAuth (fast login)
 // ============================================
-export const googleProviderUser = new GoogleAuthProvider();
-googleProviderUser.addScope('https://www.googleapis.com/auth/userinfo.email');
-// NO consent prompt or offline access - fastest possible popup
+export const userGoogleProvider = new GoogleAuthProvider();
+// Only basic profile - no extended permissions
+userGoogleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+userGoogleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
-// Legacy export for backwards compatibility
-export const googleProvider = googleProviderHR;
+// Fast login - just account picker, no consent screen for returning users
+userGoogleProvider.setCustomParameters({
+    prompt: 'select_account'
+});
+
+// Legacy export for backward compatibility with existing login page
+export const googleProvider = hrGoogleProvider;
 
 export default app;

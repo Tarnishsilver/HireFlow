@@ -43,7 +43,7 @@ export default function ApplyPage({ params }: { params: Promise<{ jobId: string 
     // Protect route
     useEffect(() => {
         if (!authLoading && !user) {
-            router.push(`/login?redirect=/apply/${jobId}`);
+            router.push(`/?redirect=/apply/${jobId}`);
         }
     }, [user, authLoading, router, jobId]);
 

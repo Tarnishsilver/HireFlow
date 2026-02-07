@@ -95,7 +95,7 @@ export default function JobOpeningsPage() {
                                 </>
                             ) : (
                                 <Link
-                                    href="/login"
+                                    href="/"
                                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
                                 >
                                     Sign In
