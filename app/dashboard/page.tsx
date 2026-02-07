@@ -11,7 +11,8 @@ import {
     Briefcase, Plus, MapPin, Clock, Users, Loader2, LogOut, Eye,
     RefreshCw, ShieldAlert, Calendar, Mail, FileText, Flame, Share2
 } from 'lucide-react';
-import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
+
+// import { PrismFluxLoader } from '@/components/ui/prism-flux-loader'; // Removed per user request
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
@@ -82,10 +83,11 @@ function DashboardContent() {
         loadCache();
     }, [user?.uid, cacheLoaded]);
 
-    // Auto-fetch data using stored token on mount (if no cached data)
+    // Auto-fetch data using stored token on mount
     useEffect(() => {
         async function autoFetchWithStoredToken() {
-            if (!user || data || loadingData || accessToken) return;
+            // Only skip if no user or if we ALREADY have the token
+            if (!user || accessToken) return;
 
             try {
                 const firebaseToken = await user.getIdToken();
@@ -99,7 +101,10 @@ function DashboardContent() {
                     if (tokenData.hasToken && tokenData.google_access_token) {
                         console.log('[Dashboard] Auto-fetching with stored token');
                         setAccessToken(tokenData.google_access_token);
-                        fetchDashboardData(tokenData.google_access_token);
+                        // Only fetch fresh data if we don't have any data yet
+                        if (!data) {
+                            fetchDashboardData(tokenData.google_access_token);
+                        }
                     }
                 }
             } catch (err) {
@@ -110,7 +115,7 @@ function DashboardContent() {
         // Wait a bit for cache to load first
         const timer = setTimeout(autoFetchWithStoredToken, 500);
         return () => clearTimeout(timer);
-    }, [user, data, loadingData, accessToken]);
+    }, [user, accessToken, data]);
 
     // Protect route - redirect if not HR
     useEffect(() => {
@@ -444,15 +449,7 @@ function DashboardContent() {
 
             {/* Main Content */}
             <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 relative bg-background">
-                {/* Loading Overlay - Minimal */}
-                {loadingData && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
-                        <div className="bg-card border border-border rounded-lg shadow-lg p-6 flex flex-col items-center animate-in fade-in zoom-in duration-200">
-                            <PrismFluxLoader size={40} speed={4} />
-                            <p className="mt-4 text-sm font-medium text-foreground">Connecting to Google Workspace...</p>
-                        </div>
-                    </div>
-                )}
+                {/* Loading Overlay - Removed per request */}
 
                 {activeTab === 'overview' ? (
                     /* Overview Tab - Email & Calendar */

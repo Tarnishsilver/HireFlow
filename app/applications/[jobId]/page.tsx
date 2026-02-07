@@ -161,6 +161,34 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
                                             </span>
                                         </div>
 
+                                        {/* Profile Details (New) */}
+                                        {(app.social_data as any).profile && (
+                                            <div className="mb-4 pb-4 border-b border-border/50">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                                        {(app.social_data as any).profile.name ? (app.social_data as any).profile.name.charAt(0) : '?'}
+                                                    </div>
+                                                    <div>
+                                                        <h5 className="font-semibold text-sm">{(app.social_data as any).profile.name || 'Unknown Name'}</h5>
+                                                        {(app.social_data as any).profile.headline && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5">{(app.social_data as any).profile.headline}</p>
+                                                        )}
+                                                        {(app.social_data as any).profile.location && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                                                                <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground"></span>
+                                                                {(app.social_data as any).profile.location}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {(app.social_data as any).profile.about && (
+                                                    <p className="text-xs text-foreground/80 mt-2 line-clamp-3 italic">
+                                                        "{(app.social_data as any).profile.about}"
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-muted-foreground text-xs uppercase tracking-wider">Toxicity Score</span>

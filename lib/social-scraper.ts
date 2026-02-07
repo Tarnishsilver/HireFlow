@@ -51,7 +51,20 @@ async function getBrowser() {
     return browser;
 }
 
+export interface SocialProfile {
+    name?: string;
+    headline?: string;
+    about?: string;
+    location?: string;
+}
+
+export interface LinkedInScrapeResult {
+    profile: SocialProfile;
+    posts: SocialPost[];
+}
+
 export async function scrapeTwitter(username: string, limit: number = 10): Promise<SocialPost[]> {
+    // ... (Twitter implementation remains unchanged)
     const browser = await getBrowser();
     const posts: SocialPost[] = [];
 
@@ -140,12 +153,10 @@ export async function scrapeTwitter(username: string, limit: number = 10): Promi
     return posts;
 }
 
-export async function scrapeLinkedIn(username: string, limit: number = 10): Promise<SocialPost[]> {
-    // Similar logic for LinkedIn, simplified
-    // Note: LinkedIn scraping is very hard without cookies/auth. 
-    // We will try public profile scraping similar to the python script.
+export async function scrapeLinkedIn(username: string, limit: number = 10): Promise<LinkedInScrapeResult> {
     const browser = await getBrowser();
     const posts: SocialPost[] = [];
+    const profile: SocialProfile = {};
 
     try {
         const page = await browser.newPage();
@@ -166,31 +177,62 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
             });
         }
 
-        // Public activity URL
-        const url = `https://www.linkedin.com/in/${username}/recent-activity/all/`;
-        console.log(`Navigating to ${url}`);
+        // 1. Scrape Profile Details first (Main Profile Page)
+        const profileUrl = `https://www.linkedin.com/in/${username}/`;
+        console.log(`Navigating to Profile: ${profileUrl}`);
 
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.goto(profileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        // Wait briefly for hydration
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Attempt to scrape basic profile info
+        try {
+            // Name (usually in h1 or break-words class)
+            const nameEl = await page.$('h1, .text-heading-xlarge, .pv-text-details__left-panel h1');
+            if (nameEl) {
+                profile.name = await (await nameEl.getProperty('innerText')).jsonValue() as string;
+            }
+
+            // Headline
+            const headlineEl = await page.$('.text-body-medium, .pv-text-details__left-panel .text-body-medium');
+            if (headlineEl) {
+                profile.headline = await (await headlineEl.getProperty('innerText')).jsonValue() as string;
+            }
+
+            // Location
+            const locEl = await page.$('.text-body-small.inline.t-black--light, .pv-text-details__left-panel .text-body-small');
+            if (locEl) {
+                profile.location = await (await locEl.getProperty('innerText')).jsonValue() as string;
+            }
+
+            // About (might be needing a "see more" click, but we grab what's visible)
+            const aboutEl = await page.$('#about ~ .display-flex .inline-show-more-text, .pv-about__summary-text');
+            if (aboutEl) {
+                profile.about = await (await aboutEl.getProperty('innerText')).jsonValue() as string;
+            }
+
+            console.log("Scraped Profile:", profile);
+
+        } catch (e) {
+            console.warn("Error scraping profile details:", e);
+        }
+
+        // 2. Scrape Recent Activity
+        const activityUrl = `https://www.linkedin.com/in/${username}/recent-activity/all/`;
+        console.log(`Navigating to Activity: ${activityUrl}`);
+
+        await page.goto(activityUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
         // Check for auth wall
         const currentUrl = page.url();
         if (currentUrl.includes("auth_wall") || currentUrl.includes("login")) {
             console.warn("LinkedIn Auth Wall detected.");
-            // Try fallback to public profile if activity fails? 
-            // For now, return empty or what we found.
         }
 
         await new Promise(r => setTimeout(r, 3000));
 
-        // Selectors
-        // Wait for potential content
-        try {
-            await page.waitForSelector('main', { timeout: 5000 });
-        } catch (e) { }
-
-        // Try to identify posts
-        // LinkedIn public profile activity selectors are tricky and dynamic.
-        // We look for article, or li elements that look like updates.
+        // Selectors for posts
         const possibleSelectors = [
             '.feed-shared-update-v2',
             'li.profile-creator-shared-feed-update__container',
@@ -201,33 +243,26 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
 
         let attempts = 0;
         while (posts.length < limit && attempts < 5) {
-            // Get all candidate elements from all selectors
             const elements = await page.$$(possibleSelectors.join(', '));
             console.log(`Found ${elements.length} potential post elements on attempt ${attempts + 1}`);
 
             for (const element of elements) {
                 if (posts.length >= limit) break;
                 try {
-                    // Try multiple selectors for text within the post
                     let text = '';
-
-                    // We try to get text from specific description parts first, then fall back to the whole element
                     const textEl = await element.$('.feed-shared-update-v2__description-wrapper, .feed-shared-text, .update-components-text, span.break-words');
 
                     if (textEl) {
                         text = await (await textEl.getProperty('innerText')).jsonValue() as string;
                     } else {
-                        // Fallback: get text of the whole container but this might be noisy
                         text = await (await element.getProperty('innerText')).jsonValue() as string;
                     }
 
                     text = text.trim();
 
-                    // Basic cleanup: remove "Like", "Comment", generic UI text if possible. 
-                    // But for now, just checking length is a decent heuristic.
                     if (text.length > 20 && !posts.some(p => p.text === text)) {
                         posts.push({
-                            text: text.slice(0, 500), // Truncate for safety
+                            text: text.slice(0, 500),
                             created_at: new Date().toISOString(),
                             source: 'linkedin'
                         });
@@ -237,7 +272,6 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
 
             if (posts.length >= limit) break;
 
-            // Scroll down
             const previousHeight = await page.evaluate('document.body.scrollHeight');
             await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
             await new Promise(r => setTimeout(r, 2000));
@@ -256,5 +290,5 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
         await browser.close();
     }
 
-    return posts;
+    return { profile, posts };
 }

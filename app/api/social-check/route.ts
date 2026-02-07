@@ -20,8 +20,17 @@ export async function POST(req: NextRequest) {
         let posts: SocialPost[] = [];
         if (platform === 'twitter') {
             posts = await scrapeTwitter(username);
-        } else {
-            posts = await scrapeLinkedIn(username);
+            // } else {
+            //    posts = await scrapeLinkedIn(username);
+            // }
+        }
+
+        let profileData = {};
+
+        if (platform === 'linkedin') {
+            const result = await scrapeLinkedIn(username);
+            posts = result.posts;
+            profileData = result.profile;
         }
 
         if (!posts || posts.length === 0) {
@@ -57,6 +66,7 @@ export async function POST(req: NextRequest) {
         const report = {
             username,
             platform,
+            profile: profileData,
             total_posts_analyzed: analyzedPosts.length,
             profane_ratio: parseFloat(profaneRatio.toFixed(2)),
             average_toxicity: parseFloat(avgToxicity.toFixed(2)),

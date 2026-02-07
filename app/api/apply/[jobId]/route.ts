@@ -275,7 +275,9 @@ export async function POST(
 
                     // 2. Scrape Data
                     // We use the same scraper function as the separate tool
-                    const posts = await scrapeLinkedIn(username, 5); // Limit to 5 for compatibility
+                    const scrapeResult = await scrapeLinkedIn(username, 5); // Limit to 5 for compatibility
+                    const posts = scrapeResult.posts;
+                    const profile = scrapeResult.profile;
 
                     if (posts && posts.length > 0) {
                         // 3. Analyze Data
@@ -309,6 +311,7 @@ export async function POST(
                         const socialReport = {
                             username,
                             platform: 'linkedin',
+                            profile: profile,
                             total_posts_analyzed: analyzedPosts.length,
                             profane_ratio: parseFloat(profaneRatio.toFixed(2)),
                             average_toxicity: parseFloat(avgToxicity.toFixed(2)),
