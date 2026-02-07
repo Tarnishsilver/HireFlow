@@ -16,6 +16,7 @@ import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
 import { FadeIn, FadeInStagger } from '@/components/animations/FadeIn';
+import { CreateEventModal } from '@/components/dashboard/CreateEventModal';
 
 interface Job {
     id: string;
@@ -47,6 +48,10 @@ function DashboardContent() {
     // Jobs state
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loadingJobs, setLoadingJobs] = useState(true);
+
+    // Modal state
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [creatingEvent, setCreatingEvent] = useState(false);
 
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
@@ -196,33 +201,32 @@ function DashboardContent() {
         try {
             let token = accessToken;
 
-            // First try to get stored token from backend
-            if (!token && user) {
-                const firebaseToken = await user.getIdToken();
-                const tokenRes = await fetch('/api/auth/store-token', {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
-                });
-
-                if (tokenRes.ok) {
-                    const tokenData = await tokenRes.json();
-                    if (tokenData.hasToken && tokenData.google_access_token) {
-                        token = tokenData.google_access_token;
-                        setAccessToken(token);
-                        console.log('[Dashboard] Using stored token for sync');
-                    }
-                }
-            }
-
-            // Fallback to OAuth popup only if no stored token
+            // Check if we need to sign in (synchronous check against state)
             if (!token) {
-                console.log('[Dashboard] No stored token, prompting for OAuth');
+                console.log('[Dashboard] No stored token found in state, prompting for OAuth');
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
                 token = credential?.accessToken || null;
 
                 if (!token) throw new Error("Failed to get access token");
                 setAccessToken(token);
+
+                // Store token in background (don't await)
+                if (user) {
+                    user.getIdToken().then(firebaseToken => {
+                        fetch('/api/auth/store-token', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${firebaseToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                google_access_token: token,
+                                token_expiry: Date.now() + 3600 * 1000 // approx 1 hour
+                            })
+                        }).catch(e => console.error('Background token store failed:', e));
+                    });
+                }
             }
 
             const res = await import('@/app/actions').then(mod => mod.syncEmailsToCalendar(token));
@@ -247,24 +251,6 @@ function DashboardContent() {
         try {
             let token = accessToken;
 
-            // First try to get stored token from backend
-            if (!token && user) {
-                const firebaseToken = await user.getIdToken();
-                const tokenRes = await fetch('/api/auth/store-token', {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
-                });
-
-                if (tokenRes.ok) {
-                    const tokenData = await tokenRes.json();
-                    if (tokenData.hasToken && tokenData.google_access_token) {
-                        token = tokenData.google_access_token;
-                        setAccessToken(token);
-                    }
-                }
-            }
-
-            // Fallback to OAuth popup only if no stored token
             if (!token) {
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -300,40 +286,18 @@ function DashboardContent() {
         }
     };
 
-    // Handle creating a new calendar event
-    const handleNewEvent = async () => {
-        const title = prompt('Event title:');
-        if (!title) return;
+    // Handle create event click (opens modal)
+    const handleNewEvent = () => {
+        setIsEventModalOpen(true);
+    };
 
-        const dateStr = prompt('Event date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
-        if (!dateStr) return;
-
-        const timeStr = prompt('Event time (HH:MM):', '10:00');
-        if (!timeStr) return;
-
-        const duration = prompt('Duration in minutes:', '60');
-
+    // Handle form submission from modal
+    const handleCreateEventSubmit = async (data: { title: string; date: string; time: string; duration: string }) => {
+        setCreatingEvent(true);
         try {
             let token = accessToken;
 
-            // First try to get stored token from backend
-            if (!token && user) {
-                const firebaseToken = await user.getIdToken();
-                const tokenRes = await fetch('/api/auth/store-token', {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${firebaseToken}` }
-                });
-
-                if (tokenRes.ok) {
-                    const tokenData = await tokenRes.json();
-                    if (tokenData.hasToken && tokenData.google_access_token) {
-                        token = tokenData.google_access_token;
-                        setAccessToken(token);
-                    }
-                }
-            }
-
-            // Fallback to OAuth popup if no stored token
+            // Check if we need to sign in
             if (!token) {
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -346,24 +310,27 @@ function DashboardContent() {
                 return;
             }
 
-            const startTime = new Date(`${dateStr}T${timeStr}:00`);
-            const durationMs = (parseInt(duration || '60')) * 60 * 1000;
+            const startTime = new Date(`${data.date}T${data.time}:00`);
+            const durationMs = (parseInt(data.duration || '60')) * 60 * 1000;
             const endTime = new Date(startTime.getTime() + durationMs);
 
             await createSingleCalendarEvent(token, {
-                summary: title,
+                summary: data.title,
                 description: 'Created via HR Dashboard',
                 startTime: startTime.toISOString(),
                 endTime: endTime.toISOString(),
             });
 
-            alert(`✅ Added "${title}" to your Google Calendar!`);
+            alert(`✅ Added "${data.title}" to your Google Calendar!`);
+            setIsEventModalOpen(false);
 
             if (token) fetchDashboardData(token);
         } catch (err: unknown) {
             console.error('Failed to create event:', err);
             const message = err instanceof Error ? err.message : 'Unknown error';
             alert('Failed to create event: ' + message);
+        } finally {
+            setCreatingEvent(false);
         }
     };
 
@@ -707,6 +674,14 @@ function DashboardContent() {
                 </div>
 
             </FadeIn>
+
+            {/* Event Creation Modal */}
+            <CreateEventModal
+                isOpen={isEventModalOpen}
+                onClose={() => setIsEventModalOpen(false)}
+                onSubmit={handleCreateEventSubmit}
+                isLoading={creatingEvent}
+            />
         </div>
     );
 }
