@@ -22,21 +22,34 @@ const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firebase Storage
 export const storage = getStorage(app);
 
-// Add scopes for Gmail and Calendar
-googleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
-googleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
-googleProvider.addScope('https://www.googleapis.com/auth/calendar');
-googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
-
-// Force refresh token on every login for now to ensure we capture it
-googleProvider.setCustomParameters({
+// ============================================
+// HR Provider - Full Gmail & Calendar permissions
+// ============================================
+export const googleProviderHR = new GoogleAuthProvider();
+googleProviderHR.addScope('https://www.googleapis.com/auth/gmail.readonly');
+googleProviderHR.addScope('https://www.googleapis.com/auth/gmail.send');
+googleProviderHR.addScope('https://www.googleapis.com/auth/gmail.compose');
+googleProviderHR.addScope('https://www.googleapis.com/auth/calendar');
+googleProviderHR.addScope('https://www.googleapis.com/auth/calendar.events');
+googleProviderHR.addScope('https://www.googleapis.com/auth/userinfo.email');
+// Force consent for HR to capture refresh token for background API access
+googleProviderHR.setCustomParameters({
     access_type: 'offline',
     prompt: 'consent'
 });
+
+// ============================================
+// User Provider - Minimal OAuth for fast login
+// ============================================
+export const googleProviderUser = new GoogleAuthProvider();
+googleProviderUser.addScope('https://www.googleapis.com/auth/userinfo.email');
+// NO consent prompt or offline access - fastest possible popup
+
+// Legacy export for backwards compatibility
+export const googleProvider = googleProviderHR;
 
 export default app;
