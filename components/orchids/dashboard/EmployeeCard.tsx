@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -34,9 +35,12 @@ export function EmployeeCard() {
         <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 dark:border-border p-5 shadow-sm h-full">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-[15px] text-gray-900 dark:text-foreground">Employee</h3>
-                <button className="text-xs text-gray-500 dark:text-muted-foreground border border-gray-200 dark:border-border rounded-lg px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors">
+                <Link
+                    href="/employee"
+                    className="text-xs text-gray-500 dark:text-muted-foreground border border-gray-200 dark:border-border rounded-lg px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors"
+                >
                     See Details
-                </button>
+                </Link>
             </div>
             {/* Table header */}
             <div className="grid grid-cols-3 text-[11px] text-gray-400 font-medium mb-3 px-1">

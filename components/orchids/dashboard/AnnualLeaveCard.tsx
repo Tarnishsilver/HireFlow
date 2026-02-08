@@ -8,29 +8,11 @@ export function AnnualLeaveCard() {
     useEffect(() => {
         async function fetchLeaves() {
             try {
-                const res = await fetch('/api/leaves');
+                const res = await fetch('/api/dashboard/stats');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.leaves && data.leaves.length > 0) {
-                        setLeaves(data.leaves.slice(0, 3)); // Show top 3
-                    } else {
-                        // Fallback
-                        setLeaves([
-                            {
-                                employeeName: "Lisa Harvey",
-                                type: "Annual Leave",
-                                dates: "Jan 12, 2024",
-                                days: 1,
-                                avatarColor: "bg-teal-100 text-teal-600"
-                            },
-                            {
-                                employeeName: "Leslie Alexander",
-                                type: "Annual Leave",
-                                dates: "Jan 12, 2024",
-                                days: 2,
-                                avatarColor: "bg-indigo-100 text-indigo-600"
-                            }
-                        ]);
+                    if (data.todayLeaves) {
+                        setLeaves(data.todayLeaves.slice(0, 3));
                     }
                 }
             } catch (error) {

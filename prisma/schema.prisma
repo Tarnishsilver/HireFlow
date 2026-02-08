@@ -159,6 +159,7 @@ model Meeting {
 
   @@map("meetings")
 }
+
 // ─── New Models for Frontend Migration ───────────────────────────────────
 
 model Department {
@@ -174,45 +175,46 @@ model Department {
 }
 
 model Employee {
-  id           String   @id @default(uuid())
-  first_name   String
-  last_name    String
-  email        String   @unique
-  phone        String?
-  job_title    String
-  contract_type String   // "Full-time", "Part-time", "Contract"
-  avatar_color String   @default("bg-blue-500") // UI fallback
+  id            String    @id @default(uuid())
+  first_name    String
+  last_name     String
+  email         String    @unique
+  phone         String?
+  job_title     String
+  contract_type String // "Full-time", "Part-time", "Contract"
+  avatar_color  String    @default("bg-blue-500") // UI fallback
+  date_of_birth DateTime? // Added for "Birthday" feature
 
   // Relations
   department_id String
   department    Department @relation(fields: [department_id], references: [id])
-  
-  manager_id    String?
-  manager       Employee?  @relation("ManagerToReport", fields: [manager_id], references: [id])
-  reports       Employee[] @relation("ManagerToReport")
 
-  leaves        LeaveRequest[]
-  work_logs     WorkLog[]
+  manager_id String?
+  manager    Employee?  @relation("ManagerToReport", fields: [manager_id], references: [id])
+  reports    Employee[] @relation("ManagerToReport")
 
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  leaves    LeaveRequest[]
+  work_logs WorkLog[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("employees")
 }
 
 model LeaveRequest {
-  id          String   @id @default(uuid())
-  type        String   // "Annual", "Sick", "Maternity", "Unpaid"
-  status      String   @default("Pending") // "Pending", "Approved", "Rejected"
-  start_date  DateTime
-  end_date    DateTime
-  reason      String?
+  id         String   @id @default(uuid())
+  type       String // "Annual", "Sick", "Maternity", "Unpaid"
+  status     String   @default("Pending") // "Pending", "Approved", "Rejected"
+  start_date DateTime
+  end_date   DateTime
+  reason     String?
 
   employee_id String
   employee    Employee @relation(fields: [employee_id], references: [id])
 
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("leave_requests")
 }
@@ -222,28 +224,43 @@ model WorkLog {
   date         DateTime
   hours_worked Float
   overtime     Float    @default(0)
-  status       String   // "On Time", "Late", "Absent"
+  status       String // "On Time", "Late", "Absent"
 
-  employee_id  String
-  employee     Employee @relation(fields: [employee_id], references: [id])
+  employee_id String
+  employee    Employee @relation(fields: [employee_id], references: [id])
 
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("work_logs")
 }
 
 model CompanyPaymentMethod {
-  id            String   @id @default(uuid())
-  card_holder   String
-  account_number String  // Masked or full (security caution)
-  expiration    String   // MM/YY
-  card_type     String   // "Visa", "MasterCard"
-  method_type   String   // "Debit Card", "Credit Card"
-  is_default    Boolean  @default(false)
+  id             String  @id @default(uuid())
+  card_holder    String
+  account_number String // Masked or full (security caution)
+  expiration     String // MM/YY
+  card_type      String // "Visa", "MasterCard"
+  method_type    String // "Debit Card", "Credit Card"
+  is_default     Boolean @default(false)
 
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("company_payment_methods")
+}
+
+// Simple Task model for Dashboard
+model Task {
+  id           String  @id @default(uuid())
+  title        String
+  is_completed Boolean @default(false)
+
+  // Optional link to user if needed later, but keeping simple for now
+  // user_id     String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("tasks")
 }
