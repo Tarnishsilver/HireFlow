@@ -83,6 +83,14 @@ export async function GET(
                 ats_reasons: true,
                 linkedin_url: true,
                 social_data: true,
+                interviews: {
+                    select: {
+                        id: true,
+                        meeting_id: true,
+                        scheduled_at: true,
+                        status: true,
+                    }
+                }
             },
         });
 

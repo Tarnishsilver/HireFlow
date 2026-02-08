@@ -101,7 +101,32 @@ model Application {
   job_id String
   job    JobOpening @relation(fields: [job_id], references: [id], onDelete: Cascade)
 
+  // Interview relation
+  interviews Interview[]
+
   @@map("applications")
+}
+
+// Interview model
+model Interview {
+  id             String      @id @default(uuid())
+  meeting_id     String      @unique
+  candidate_id   String
+  hr_id          String
+  scheduled_at   DateTime
+  duration       Int         @default(10) // 10 minutes session
+  status         String      @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  scores         Json?       // Scoring metrics (e.g., technical, communication, etc.)
+  feedback       String?     @db.Text
+  
+  // Relations
+  application_id String
+  application    Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("interviews")
 }
 
 // File model to store binary data directly in Postgres

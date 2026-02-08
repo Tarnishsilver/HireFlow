@@ -23,19 +23,28 @@ export default function UserLoginPage() {
     }, [user, role, loading, router]);
 
     const handleUserGoogleAuth = async () => {
+        if (submitting) return; // Prevent double-clicks
+
         setError(null);
         setSubmitting(true);
 
         try {
+            console.log('[Login] Starting Google Auth...');
             // Fast login - minimal scopes, no token storage needed
-            await signInWithPopup(auth, userGoogleProvider);
+            const result = await signInWithPopup(auth, userGoogleProvider);
+            console.log('[Login] Auth successful for:', result.user.email);
 
             // Auto-set role to CANDIDATE
             await setRole('CANDIDATE');
+            console.log('[Login] Role set to CANDIDATE');
+
             router.push('/jobopening');
         } catch (err: any) {
             console.error('User Google auth error:', err);
-            setError(err.message || 'Authentication failed');
+            // Don't show "cancelled" errors to user as they are usually benign results of double clicks
+            if (err.code !== 'auth/cancelled-popup-request') {
+                setError(err.message || 'Authentication failed');
+            }
         } finally {
             setSubmitting(false);
         }

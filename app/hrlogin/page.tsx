@@ -23,10 +23,13 @@ export default function HRLoginPage() {
     }, [user, role, loading, router]);
 
     const handleHRGoogleAuth = async () => {
+        if (submitting) return; // Prevent double-clicks
+
         setError(null);
         setSubmitting(true);
 
         try {
+            console.log('[HR Login] Starting Google Auth...');
             const result = await signInWithPopup(auth, hrGoogleProvider);
             const user = result.user;
             const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -59,7 +62,10 @@ export default function HRLoginPage() {
             router.push('/dashboard');
         } catch (err: any) {
             console.error('HR Google auth error:', err);
-            setError(err.message || 'Authentication failed');
+            // Don't show "cancelled" errors to user
+            if (err.code !== 'auth/cancelled-popup-request') {
+                setError(err.message || 'Authentication failed');
+            }
         } finally {
             setSubmitting(false);
         }

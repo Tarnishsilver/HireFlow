@@ -175,10 +175,12 @@ function DashboardContent() {
             } else {
                 throw new Error("Could not retrieve Google Access Token. Please try again.");
             }
-        } catch (err: unknown) {
+        } catch (err: any) {
             console.error(err);
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            setError(message || 'Failed to connect to Google Workspace');
+            if (err.code !== 'auth/cancelled-popup-request') {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                setError(message || 'Failed to connect to Google Workspace');
+            }
         }
     };
 
@@ -240,10 +242,12 @@ function DashboardContent() {
                 alert(`Successfully created ${res.count} calendar events from emails!`);
                 fetchDashboardData(token);
             }
-        } catch (err: unknown) {
+        } catch (err: any) {
             console.error(err);
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            alert("Failed to sync: " + message);
+            if (err.code !== 'auth/cancelled-popup-request') {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                alert("Failed to sync: " + message);
+            }
         } finally {
             setLoadingData(false);
         }

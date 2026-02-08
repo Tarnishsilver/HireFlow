@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { Briefcase, MapPin, Clock, Building2, Loader2, LogOut, Search, LayoutDashboard } from 'lucide-react';
+import { Briefcase, MapPin, Clock, Building2, Loader2, LogOut, Search, LayoutDashboard, Video, Calendar } from 'lucide-react';
 
 interface Job {
     id: string;
@@ -26,6 +26,8 @@ export default function JobOpeningsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const [interviews, setInterviews] = useState<any[]>([]);
+    const [loadingInterviews, setLoadingInterviews] = useState(false);
 
     useEffect(() => {
         async function fetchJobs() {
@@ -47,6 +49,28 @@ export default function JobOpeningsPage() {
 
         fetchJobs();
     }, []);
+
+    useEffect(() => {
+        async function fetchInterviews() {
+            if (!user || role !== 'CANDIDATE') return;
+            setLoadingInterviews(true);
+            try {
+                const response = await fetch(`/api/interview/list?candidateId=${user.email}`);
+                const data = await response.json();
+                if (response.ok) {
+                    setInterviews(data.interviews);
+                }
+            } catch (err) {
+                console.error('Failed to fetch interviews:', err);
+            } finally {
+                setLoadingInterviews(false);
+            }
+        }
+
+        if (user && role === 'CANDIDATE') {
+            fetchInterviews();
+        }
+    }, [user, role]);
 
     const filteredJobs = jobs.filter((job) => {
         const searchLower = search.toLowerCase();
@@ -108,6 +132,46 @@ export default function JobOpeningsPage() {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* My Interviews (for Candidates) */}
+                {user && role === 'CANDIDATE' && interviews.length > 0 && (
+                    <div className="mb-12">
+                        <div className="flex items-center gap-2 mb-6 text-primary">
+                            <Video className="h-6 w-6" />
+                            <h2 className="text-2xl font-bold">Your Scheduled Interviews</h2>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {interviews.map((interview) => (
+                                <div key={interview.id} className="bg-primary/5 border border-primary/20 rounded-2xl p-6 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <Calendar className="h-16 w-16" />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-1">{interview.application.job.title}</h3>
+                                    <p className="text-muted-foreground mb-4">{interview.application.job.company_name}</p>
+
+                                    <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground mb-6">
+                                        <span className="flex items-center gap-1.5">
+                                            <Calendar className="h-4 w-4" />
+                                            {new Date(interview.scheduled_at).toLocaleDateString()}
+                                        </span>
+                                        <span className="flex items-center gap-1.5">
+                                            <Clock className="h-4 w-4" />
+                                            {new Date(interview.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+
+                                    <Link
+                                        href={`/meetings/${interview.meeting_id}`}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                    >
+                                        <Video className="h-5 w-5" />
+                                        Join Video Interview
+                                    </Link>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Search */}
                 <div className="mb-8">
                     <div className="relative max-w-xl">

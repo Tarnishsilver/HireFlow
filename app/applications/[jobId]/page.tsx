@@ -6,7 +6,8 @@ import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { ArrowLeft, Loader2, ExternalLink, Github, Globe, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, ExternalLink, Github, Globe, FileText, Video, Calendar } from 'lucide-react';
+import { ScheduleInterviewModal } from '@/components/dashboard/ScheduleInterviewModal';
 
 interface Application {
     id: string;
@@ -22,6 +23,12 @@ interface Application {
     ats_reasons: string[];
     linkedin_url: string | null;
     social_data: any;
+    interviews: Array<{
+        id: string;
+        meeting_id: string;
+        scheduled_at: string;
+        status: string;
+    }>;
 }
 
 export default function ApplicationsPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -33,6 +40,8 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+    const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
 
     // Protect route - HR only
     useEffect(() => {
@@ -72,6 +81,39 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
             fetchApplications();
         }
     }, [jobId, user, role, authLoading]);
+
+    const handleScheduleInterview = async (data: { scheduledAt: string }) => {
+        if (!selectedApplication || !user) return;
+
+        try {
+            const response = await fetch('/api/interview/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    applicationId: selectedApplication.id,
+                    candidateId: selectedApplication.candidate_email, // Using email as candidateId for now if no uid
+                    hrId: user.uid,
+                    scheduledAt: data.scheduledAt,
+                }),
+            });
+
+            if (response.ok) {
+                // Refresh applications
+                const token = await user.getIdToken();
+                const refreshRes = await fetch(`/api/applications/${jobId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                const refreshData = await refreshRes.json();
+                if (refreshRes.ok) setApplications(refreshData.applications);
+                alert('Interview scheduled successfully!');
+            }
+        } catch (err) {
+            console.error('Failed to schedule interview:', err);
+            alert('Failed to schedule interview');
+        }
+    };
 
     // Get score badge color
     const getScoreBadgeClass = (score: number | null) => {
@@ -302,6 +344,29 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
                                                 Decision: {app.ats_decision}
                                             </span>
                                         )}
+
+                                        <div className="flex gap-2 mt-4">
+                                            {app.interviews && app.interviews.length > 0 ? (
+                                                <Link
+                                                    href={`/meetings/${app.interviews[0].meeting_id}`}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-bold shadow-md hover:bg-green-600 transition-all"
+                                                >
+                                                    <Video className="h-4 w-4" />
+                                                    Join Meeting
+                                                </Link>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedApplication(app);
+                                                        setScheduleModalOpen(true);
+                                                    }}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold shadow-md hover:opacity-90 transition-all"
+                                                >
+                                                    <Calendar className="h-4 w-4" />
+                                                    Schedule Interview
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -354,6 +419,13 @@ export default function ApplicationsPage({ params }: { params: Promise<{ jobId: 
                     </div>
                 )}
             </main>
+
+            <ScheduleInterviewModal
+                isOpen={scheduleModalOpen}
+                onClose={() => setScheduleModalOpen(false)}
+                onSubmit={handleScheduleInterview}
+                candidateName={selectedApplication?.candidate_name || ''}
+            />
         </div>
     );
 }
