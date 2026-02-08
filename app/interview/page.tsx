@@ -12,8 +12,6 @@ export default function InterviewPage() {
         if (currentRole === 'HR') {
             router.push('/interview/dashboard');
         } else {
-            // For candidate, maybe go to a "Select Interview" or "Start" page
-            // For now, let's assume there is a default interview ID 'demo-123'
             router.push('/interview/room/demo-123');
         }
     }, [currentRole, router]);

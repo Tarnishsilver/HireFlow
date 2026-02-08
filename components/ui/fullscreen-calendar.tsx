@@ -43,9 +43,10 @@ interface CalendarData {
 interface FullScreenCalendarProps {
     data: CalendarData[]
     onAddEvent?: () => void
+    onEventClick?: (eventId: string) => void
 }
 
-export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps) {
+export function FullScreenCalendar({ data, onAddEvent, onEventClick }: FullScreenCalendarProps) {
     const today = startOfToday()
     const [selectedDay, setSelectedDay] = React.useState(today)
     const [currentMonth, setCurrentMonth] = React.useState(
@@ -208,8 +209,12 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                                                         {dayData.events.slice(0, 2).map((event) => (
                                                             <div
                                                                 key={event.id}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onEventClick?.(event.id);
+                                                                }}
                                                                 className={cn(
-                                                                    "flex flex-col border-l-2 px-1.5 py-0.5 text-[9px] leading-tight rounded-r-sm transition-all truncate",
+                                                                    "flex flex-col border-l-2 px-1.5 py-0.5 text-[9px] leading-tight rounded-r-sm transition-all truncate cursor-pointer",
                                                                     event.category === 'Interview'
                                                                         ? "border-primary bg-primary/10 text-primary-foreground hover:bg-primary/20"
                                                                         : "border-muted-foreground/30 bg-muted text-muted-foreground hover:bg-muted/80"
@@ -258,6 +263,68 @@ export function FullScreenCalendar({ data, onAddEvent }: FullScreenCalendarProps
                             </button>
                         ))}
                     </div>
+                </div>
+            </div>
+
+            {/* Selected Day Details Panel */}
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm min-h-[150px]">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                    {format(selectedDay, "EEEE, MMMM d")}
+                </h3>
+
+                <div className="space-y-3">
+                    {data
+                        .filter((event) => isSameDay(event.day, selectedDay))
+                        .flatMap(dayData => dayData.events)
+                        .length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic">No events scheduled for this day.</p>
+                    ) : (
+                        data
+                            .filter((event) => isSameDay(event.day, selectedDay))
+                            .flatMap(dayData => dayData.events)
+                            .map((event) => (
+                                <div
+                                    key={event.id}
+                                    onClick={() => onEventClick?.(event.id)}
+                                    className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-lg border border-transparent hover:border-border transition-all cursor-pointer group"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center justify-center w-12 h-12 bg-background border border-border rounded-md">
+                                            <span className="text-xs font-bold text-foreground">
+                                                {format(new Date(event.datetime), "h:mm")}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground uppercase">
+                                                {format(new Date(event.datetime), "a")}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                {event.name}
+                                            </h4>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                                                    ID: {event.id.slice(0, 8)}...
+                                                </span>
+                                                {event.category && (
+                                                    <span className={cn(
+                                                        "text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wide",
+                                                        event.category === 'Interview' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" :
+                                                            event.category === 'Scheduled' ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" :
+                                                                "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                                    )}>
+                                                        {event.category}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        View Details
+                                    </Button>
+                                </div>
+                            ))
+                    )
+                    }
                 </div>
             </div>
         </div>

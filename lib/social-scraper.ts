@@ -22,14 +22,19 @@ async function getBrowser() {
         try {
             const chromium = (await import('@sparticuz/chromium')).default;
             const puppeteerCore = (await import('puppeteer-core')).default;
+            const { addExtra } = await import('puppeteer-extra');
+            const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default;
 
-            browser = await puppeteerCore.launch({
-                args: chromium.args,
-                defaultViewport: (chromium as any).defaultViewport,
+            const puppeteer = addExtra(puppeteerCore);
+            puppeteer.use(StealthPlugin());
+
+            browser = await puppeteer.launch({
+                args: [...chromium.args, "--disable-blink-features=AutomationControlled"],
+                defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(
                     "https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.x64.tar"
                 ),
-                headless: (chromium as any).headless,
+                headless: chromium.headless,
             });
         } catch (error) {
             console.error("Production browser launch failed:", error);
@@ -38,14 +43,28 @@ async function getBrowser() {
     } else {
         // Local Development
         try {
-            const puppeteerLocal = (await import('puppeteer')).default;
-            browser = await puppeteerLocal.launch({
+            // Use require to avoid ESM issues with these specific packages
+            const puppeteerExtra = require('puppeteer-extra');
+            const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+            puppeteerExtra.use(StealthPlugin());
+
+            browser = await puppeteerExtra.launch({
                 headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
             });
         } catch (e) {
-            console.warn("Local puppeteer launch failed, trying fallback...", e);
-            throw new Error("Could not launch local browser. Ensure 'puppeteer' is installed.");
+            console.warn("Local puppeteer-extra launch failed, trying fallback...", e);
+            try {
+                const puppeteerLocal = (await import('puppeteer')).default;
+                browser = await puppeteerLocal.launch({
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox']
+                });
+            } catch (fallbackErr) {
+                console.error("Fallback puppeteer launch failed:", fallbackErr);
+                throw new Error("Could not launch local browser. Ensure 'puppeteer' is installed.");
+            }
         }
     }
     return browser;
@@ -70,11 +89,8 @@ export async function scrapeTwitter(username: string, limit: number = 10): Promi
 
     try {
         const page = await browser.newPage();
-        // Stealth/Anti-detection scripts
-        await page.evaluateOnNewDocument(() => {
-            // @ts-ignore
-            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        });
+        // Stealth plugin handles webdriver property hiding now
+
 
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         await page.setViewport({ width: 1280, height: 720 });
@@ -291,4 +307,84 @@ export async function scrapeLinkedIn(username: string, limit: number = 10): Prom
     }
 
     return { profile, posts };
+}
+
+export async function scrapeLinkedInComments(username: string, limit: number = 10): Promise<SocialPost[]> {
+    const browser = await getBrowser();
+    const comments: SocialPost[] = [];
+
+    try {
+        const page = await browser.newPage();
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setViewport({ width: 1280, height: 720 });
+
+        if (process.env.LI_AT_COOKIE) {
+            await page.setCookie({
+                name: 'li_at',
+                value: process.env.LI_AT_COOKIE,
+                domain: '.linkedin.com',
+                path: '/',
+                httpOnly: true,
+                secure: true,
+                sameSite: 'None'
+            });
+        }
+
+        const commentsUrl = `https://www.linkedin.com/in/${username}/recent-activity/comments/`;
+        console.log(`Navigating to Comments: ${commentsUrl}`);
+
+        await page.goto(commentsUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await new Promise(r => setTimeout(r, 3000));
+
+        let attempts = 0;
+        while (comments.length < limit && attempts < 5) {
+            // Selectors for comments in activity feed
+            const elements = await page.$$('li.profile-creator-shared-feed-update__container, .feed-shared-update-v2, article');
+
+            for (const element of elements) {
+                if (comments.length >= limit) break;
+                try {
+                    // In comment activity, the user's comment is often in a specific "comment" block
+                    // We need to be careful to get *their* comment, not the post they commented on.
+                    // Usually looking for "feed-shared-text" inside the update is a safe bet for the *main* content of that update card.
+                    // For "comment" activity, the main content IS the comment.
+
+                    const textEl = await element.$('.feed-shared-update-v2__description-wrapper, .feed-shared-text, .update-components-text, span.break-words');
+
+                    if (textEl) {
+                        let text = await (await textEl.getProperty('innerText')).jsonValue() as string;
+                        text = text.trim();
+
+                        if (text.length > 5 && !comments.some(c => c.text === text)) {
+                            comments.push({
+                                text: text.slice(0, 500),
+                                created_at: new Date().toISOString(),
+                                source: 'linkedin' // processing as 'linkedin' comment
+                            });
+                        }
+                    }
+                } catch (e) { continue; }
+            }
+
+            if (comments.length >= limit) break;
+
+            const previousHeight = await page.evaluate('document.body.scrollHeight');
+            await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+            await new Promise(r => setTimeout(r, 2000));
+            const newHeight = await page.evaluate('document.body.scrollHeight');
+
+            if ((newHeight as number) === (previousHeight as number)) {
+                attempts++;
+            } else {
+                attempts = 0;
+            }
+        }
+
+    } catch (error) {
+        console.error("LinkedIn comment scrape error:", error);
+    } finally {
+        await browser.close();
+    }
+
+    return comments;
 }

@@ -18,6 +18,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
 import { FadeIn, FadeInStagger } from '@/components/animations/FadeIn';
 import { CreateEventModal } from '@/components/dashboard/CreateEventModal';
+import { MainLayout } from '@/components/layout/MainLayout';
 
 interface Job {
     id: string;
@@ -60,7 +61,7 @@ function DashboardContent() {
     // Sync state with URL
     useEffect(() => {
         const tab = searchParams.get('tab') as DashboardTab;
-        if (tab && (tab === 'overview' || tab === 'jobs')) {
+        if (tab && (tab === 'overview')) {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -360,274 +361,73 @@ function DashboardContent() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
-            {/* Floating Navbar */}
-            <FadeIn direction="down" className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-6xl">
-                <div className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl px-8 py-4 flex items-center justify-between transition-all duration-300 hover:bg-black/40 hover:border-white/20">
-
-                    {/* Left: Branding */}
-                    <div className="flex items-center gap-4">
-
-                        <span className="font-bold text-xl tracking-tight hidden sm:block text-white/90">HR Dashboard</span>
-                    </div>
-
-                    {/* Center: Navigation Links - Colored Glassy Buttons */}
-                    <div className="hidden lg:flex items-center gap-4 absolute left-1/2 -translate-x-1/2">
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all hover:scale-105 flex items-center gap-2 ${activeTab === 'overview'
-                                ? 'bg-purple-500/30 text-purple-300 border border-purple-500/30'
-                                : 'bg-purple-500/10 text-purple-400 border border-transparent hover:bg-purple-500/20'
-                                }`}
-                        >
-                            Overview
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('jobs')}
-                            className={`px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all hover:scale-105 flex items-center gap-2 ${activeTab === 'jobs'
-                                ? 'bg-orange-500/30 text-orange-300 border border-orange-500/30'
-                                : 'bg-orange-500/10 text-orange-400 border border-transparent hover:bg-orange-500/20'
-                                }`}
-                        >
-                            Jobs ({jobs.length})
-                        </button>
-                        <Link
-                            href="/policy"
-                            className="px-4 py-2 rounded-full text-sm font-bold tracking-wide bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all hover:scale-105 flex items-center gap-2"
-                        >
-                            <FileText className="w-4 h-4" />
-                            Policy Center
-                        </Link>
-                        <Link
-                            href="/jobopening"
-                            className="px-4 py-2 rounded-full text-sm font-bold tracking-wide text-muted-foreground hover:bg-white/10 hover:text-white transition-all hover:scale-105 flex items-center gap-2"
-                        >
-                            Public View <Eye className="w-4 h-4" />
-                        </Link>
-                    </div>
-
-                    {/* Right: Actions & Profile */}
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href="/jobopening/create"
-                            className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-white/90 hover:bg-white text-black rounded-full text-sm font-bold transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5"
-                        >
-                            <Plus className="h-4 w-4" />
-                            <span>Create Job</span>
-                        </Link>
-
-                        {/* Profile Pill */}
-                        <div className="flex items-center gap-3 pl-4 border-l border-white/10 ml-2">
-                            <div className="hidden xl:flex flex-col items-end leading-tight">
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Logged in as</span>
-                                <span className="text-sm font-medium max-w-[120px] truncate text-white">{user.email?.split('@')[0]}</span>
-                            </div>
-                            <button
-                                onClick={() => signOut()}
-                                className="h-10 w-10 rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-500 flex items-center justify-center transition-all border border-white/5 hover:border-red-500/20"
-                                title="Sign Out"
-                            >
-                                <LogOut className="h-5 w-5" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </FadeIn>
-
-            {/* Mobile Nav Overlay (Bottom fixed?) or just stacking? */}
-            {/* For now, keep simple mobile nav if needed, or rely on the floating nav scaling down. 
-                The floating nav above has hidden classes for some elements. 
-                Let's add a small mobile menu if needed, but the user image showed desktop. 
-                I'll leave the floating nav as the primary.
-            */}
-
-            {/* Mobile Bottom Bar for Tabs (since they are hidden in floating nav on small screens) */}
-            <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] bg-black/80 backdrop-blur-md border border-white/10 rounded-full p-2 flex justify-between shadow-xl">
-                <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`flex-1 flex flex-col items-center justify-center text-xs py-2 rounded-full ${activeTab === 'overview' ? 'bg-white/10 text-white' : 'text-muted-foreground'}`}
-                >
-                    <Calendar className="h-4 w-4 mb-1" />
-                    Overview
-                </button>
-                <button
-                    onClick={() => setActiveTab('jobs')}
-                    className={`flex-1 flex flex-col items-center justify-center text-xs py-2 rounded-full ${activeTab === 'jobs' ? 'bg-white/10 text-white' : 'text-muted-foreground'}`}
-                >
-                    <Briefcase className="h-4 w-4 mb-1" />
-                    Jobs
-                </button>
-                <Link href="/jobopening/create" className="flex-1 flex flex-col items-center justify-center text-xs py-2 text-green-500">
-                    <Plus className="h-4 w-4 mb-1" />
-                    Create
-                </Link>
-            </div>
-
+        <MainLayout user={user} onSignIn={() => { }} onSignOut={signOut}>
             {/* Main Content */}
-            <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-24 pb-6 relative bg-background">
-                {/* Loading Overlay - Removed per request */}
+            <div className="px-4 sm:px-6 lg:px-8 py-6 relative bg-background">
+                /* Overview Tab - Email & Calendar */
+                <FadeInStagger key="overview">
+                    <FadeIn>
+                        {/* Dashboard Cards Removed per request - moved Policy to Nav */}
+                    </FadeIn>
+                    <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 relative">
 
-                {activeTab === 'overview' ? (
-                    /* Overview Tab - Email & Calendar */
-                    <FadeInStagger key="overview">
-                        <FadeIn>
-                            {/* Dashboard Cards Removed per request - moved Policy to Nav */}
-                        </FadeIn>
-                        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 relative">
-
-                            {/* Left Panel: Calendar (3/4 of screen) - Always present */}
-                            <div className="flex-[3] min-w-0 h-[calc(100vh-130px)] flex flex-col">
-                                <CalendarPanel events={data?.events || []} loading={loadingData && !data} onAddEvent={handleNewEvent} />
-                            </div>
-
-                            {/* Right Panel: Email Summary (1/4 of screen) - Always present */}
-                            <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-130px)] flex flex-col">
-                                <div className="mb-2 flex justify-between items-center">
-                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
-                                    <button
-                                        onClick={handleSync}
-                                        disabled={loadingData}
-                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
-                                    >
-                                        <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
-                                        Sync
-                                    </button>
-                                </div>
-                                <div className="flex-1 min-h-0">
-                                    <EmailPanel emails={data?.emails || []} loading={loadingData && !data} onAddToCalendar={handleAddToCalendar} />
-                                </div>
-                            </div>
+                        {/* Left Panel: Calendar (3/4 of screen) - Always present */}
+                        <div className="flex-[3] min-w-0 h-[calc(100vh-130px)] flex flex-col">
+                            <CalendarPanel events={data?.events || []} loading={loadingData && !data} onAddEvent={handleNewEvent} />
                         </div>
 
-                        {/* Sync Status Footer - inside Overview Tab */}
-                        {data?.last_sync && (
-                            <div className="mt-4 flex items-center justify-between px-1">
-                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                                    <Clock size={10} />
-                                    Last synced: {new Date(data.last_sync).toLocaleString()}
-                                </span>
-                                {loadingData && (
-                                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest flex items-center gap-2">
-                                        <RefreshCw size={10} className="animate-spin" />
-                                        Syncing fresh data...
-                                    </span>
-                                )}
+                        {/* Right Panel: Email Summary (1/4 of screen) - Always present */}
+                        <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-130px)] flex flex-col">
+                            <div className="mb-2 flex justify-between items-center">
+                                <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
+                                <button
+                                    onClick={handleSync}
+                                    disabled={loadingData}
+                                    className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
+                                >
+                                    <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
+                                    Sync
+                                </button>
                             </div>
-                        )}
+                            <div className="flex-1 min-h-0">
+                                <EmailPanel emails={data?.emails || []} loading={loadingData && !data} onAddToCalendar={handleAddToCalendar} />
+                            </div>
+                        </div>
+                    </div>
 
-                        {error && (
-                            <FadeIn>
-                                <div className="mt-4 flex flex-col items-center justify-center text-center p-6 bg-card rounded-2xl border border-destructive/20">
-                                    <ShieldAlert className="text-destructive mb-2" size={32} />
-                                    <h2 className="text-lg font-bold mb-1 text-destructive">Connection Error</h2>
-                                    <p className="text-xs text-muted-foreground max-w-md mb-4">{error}</p>
-                                    <button
-                                        onClick={handleConnectGoogle}
-                                        className="px-4 py-1.5 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors text-xs"
-                                    >
-                                        Reconnect
-                                    </button>
-                                </div>
-                            </FadeIn>
-                        )}
-                    </FadeInStagger>
-                ) : (
-                    /* Jobs Tab */
-                    <FadeInStagger key="jobs">
+                    {/* Sync Status Footer - inside Overview Tab */}
+                    {data?.last_sync && (
+                        <div className="mt-4 flex items-center justify-between px-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                                <Clock size={10} />
+                                Last synced: {new Date(data.last_sync).toLocaleString()}
+                            </span>
+                            {loadingData && (
+                                <span className="text-[10px] text-primary font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <RefreshCw size={10} className="animate-spin" />
+                                    Syncing fresh data...
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {error && (
                         <FadeIn>
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold">Your Job Openings</h2>
-                                    <p className="text-muted-foreground">Manage your job postings and view applications</p>
-                                </div>
+                            <div className="mt-4 flex flex-col items-center justify-center text-center p-6 bg-card rounded-2xl border border-destructive/20">
+                                <ShieldAlert className="text-destructive mb-2" size={32} />
+                                <h2 className="text-lg font-bold mb-1 text-destructive">Connection Error</h2>
+                                <p className="text-xs text-muted-foreground max-w-md mb-4">{error}</p>
+                                <button
+                                    onClick={handleConnectGoogle}
+                                    className="px-4 py-1.5 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors text-xs"
+                                >
+                                    Reconnect
+                                </button>
                             </div>
                         </FadeIn>
-
-                        {loadingJobs ? (
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : jobs.length === 0 ? (
-                            <FadeIn>
-                                <div className="text-center py-16 bg-card border border-border rounded-2xl">
-                                    <div className="inline-flex items-center justify-center h-16 w-16 bg-muted rounded-2xl mb-4">
-                                        <Briefcase className="h-8 w-8 text-muted-foreground" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold mb-2">No Job Openings Yet</h3>
-                                    <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                                        Create your first job opening to start receiving applications.
-                                    </p>
-                                    <Link
-                                        href="/jobopening/create"
-                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-                                    >
-                                        <Plus className="h-5 w-5" />
-                                        Create Job Opening
-                                    </Link>
-                                </div>
-                            </FadeIn>
-                        ) : (
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {jobs.map((job) => (
-                                    <FadeIn
-                                        key={job.id}
-                                        className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors"
-                                    >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div>
-                                                <h3 className="font-semibold line-clamp-1">{job.title}</h3>
-                                                <p className="text-sm text-muted-foreground">{job.company_name}</p>
-                                            </div>
-                                            <span
-                                                className={`px-2 py-0.5 text-xs font-medium rounded-full ${job.status === 'LIVE'
-                                                    ? 'bg-green-500/10 text-green-600'
-                                                    : job.status === 'CLOSED'
-                                                        ? 'bg-red-500/10 text-red-600'
-                                                        : 'bg-yellow-500/10 text-yellow-600'
-                                                    }`}
-                                            >
-                                                {job.status}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-4">
-                                            <span className="flex items-center gap-1">
-                                                <MapPin className="h-4 w-4" />
-                                                {job.location}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="h-4 w-4" />
-                                                {job.job_type}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center justify-between pt-3 border-t border-border">
-                                            <Link
-                                                href={`/applications/${job.id}`}
-                                                className="flex items-center gap-1.5 text-sm hover:underline group"
-                                            >
-                                                <Users className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                                <span className="font-medium group-hover:text-primary transition-colors">{job._count?.applications || 0}</span>
-                                                <span className="text-muted-foreground group-hover:text-primary transition-colors">applications</span>
-                                            </Link>
-                                            <div className="flex items-center gap-3">
-                                                <Link
-                                                    href={`/jobopening/${job.id}`}
-                                                    className="text-sm text-primary font-medium hover:underline"
-                                                >
-                                                    Details
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    </FadeIn>
-                                ))}
-                            </div>
-                        )}
-                    </FadeInStagger>
-                )}
-            </main>
-
-
+                    )}
+                </FadeInStagger>
+            </div>
 
             {/* Event Creation Modal */}
             <CreateEventModal
@@ -636,7 +436,7 @@ function DashboardContent() {
                 onSubmit={handleCreateEventSubmit}
                 isLoading={creatingEvent}
             />
-        </div>
+        </MainLayout>
     );
 }
 

@@ -11,6 +11,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --font-sans: var(--font-jakarta);
 }
 
 /* Flat Black & White Theme */
@@ -29,25 +30,23 @@
 }
 
 /* Dark mode - Pure Black */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ffffff;
-    --card: #141414;
-    --card-foreground: #ffffff;
-    --primary: #ffffff;
-    --primary-foreground: #000000;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --border: #333333;
-    --destructive: #ef4444;
-  }
+/* Dark mode - Class based for toggle */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #141414;
+  --card-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --border: #333333;
+  --destructive: #ef4444;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Flat styling - no rounded corners (dashboard only) */

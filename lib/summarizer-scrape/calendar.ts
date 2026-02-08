@@ -45,7 +45,7 @@ export async function fetchHREvents(accessToken: string, refreshToken?: string):
 
 export async function createCalendarEvent(
     accessToken: string,
-    eventDetails: { summary: string; description?: string; startTime: string; endTime: string }
+    eventDetails: { summary: string; description?: string; startTime: string; endTime: string; location?: string }
 ) {
     const calendar = getCalendarClient(accessToken);
 
@@ -61,6 +61,7 @@ export async function createCalendarEvent(
                 dateTime: eventDetails.endTime,
                 timeZone: 'UTC',
             },
+            location: eventDetails.location,
         };
 
         const response = await calendar.events.insert({

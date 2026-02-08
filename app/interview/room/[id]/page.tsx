@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MOCK_QUESTIONS } from '@/lib/mock-data/questions';
 import { useInterviewStore } from '@/lib/store/useInterviewStore';

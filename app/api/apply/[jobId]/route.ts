@@ -246,17 +246,94 @@ export async function POST(
                             profane_ratio: parseFloat(profaneRatio.toFixed(2)),
                             average_toxicity: parseFloat(avgToxicity.toFixed(2)),
                             harassment_risk: harassmentRisk,
-                            posts: analyzedPosts
+                            harassment_risk: harassmentRisk,
+                            posts: analyzedPosts,
+                            comments_analysis: null as any
                         };
+
+                        // 4. Scrape & Analyze Comments
+                        try {
+                            const { scrapeLinkedInComments } = await import('@/lib/social-scraper');
+                            console.log(`Scraping comments for ${username}...`);
+                            const comments = await scrapeLinkedInComments(username, 5);
+
+                            if (comments && comments.length > 0) {
+                                let commentProfane = 0;
+                                let commentToxicitySum = 0;
+                                const analyzedComments: any[] = [];
+
+                                comments.forEach(comment => {
+                                    const analysis = analyzeText(comment.text);
+                                    analyzedComments.push({ text: comment.text, toxicity: analysis.toxicity });
+                                    commentProfane += analysis.profane_words;
+                                    commentToxicitySum += analysis.toxicity.toxicity;
+                                });
+
+                                const avgCommentToxicity = commentToxicitySum / Math.max(1, analyzedComments.length);
+                                const totalCommentWords = analyzedComments.reduce((acc, c) => acc + c.text.split(' ').length, 0);
+                                const commentProfaneRatio = commentProfane / Math.max(1, totalCommentWords);
+
+                                socialReport.comments_analysis = {
+                                    total_comments_analyzed: analyzedComments.length,
+                                    average_toxicity: parseFloat(avgCommentToxicity.toFixed(2)),
+                                    profane_ratio: parseFloat(commentProfaneRatio.toFixed(2)),
+                                    comments: analyzedComments
+                                };
+                            }
+                        } catch (commentErr) {
+                            console.error("Comment scraping failed:", commentErr);
+                        }
 
                         await prisma.application.update({
                             where: { id: application.id },
                             data: { social_data: socialReport as any }
                         });
                         console.log(`Social check saved for application ${application.id}`);
+                    } else if (profile && profile.name) {
+                        // Profile found but no posts
+                        await prisma.application.update({
+                            where: { id: application.id },
+                            data: {
+                                social_data: {
+                                    platform: 'linkedin',
+                                    profile: profile,
+                                    error: 'No posts available',
+                                    harassment_risk: 'Unknown'
+                                } as any
+                            }
+                        });
+                        console.log(`Social check: No posts found for ${username}`);
+                    } else {
+                        // User not found or private
+                        await prisma.application.update({
+                            where: { id: application.id },
+                            data: {
+                                social_data: {
+                                    platform: 'linkedin',
+                                    error: 'User not found',
+                                    harassment_risk: 'Unknown'
+                                } as any
+                            }
+                        });
+                        console.log(`Social check: User not found for ${username}`);
                     }
                 } catch (err) {
                     console.error('Social check background task failed:', err);
+                    // Save generic error state
+                    try {
+                        const { default: getPrisma } = await import('@/lib/prisma');
+                        const prisma = getPrisma();
+                        await prisma.application.update({
+                            where: { id: application.id },
+                            data: {
+                                social_data: {
+                                    platform: 'linkedin',
+                                    error: 'Analysis failed',
+                                    harassment_risk: 'Unknown'
+                                } as any
+                            }
+                        });
+                    } catch (e) { }
                 }
             })();
         }

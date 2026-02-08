@@ -45,6 +45,7 @@ model User {
 
   // Relations
   job_openings JobOpening[]
+  meetings     Meeting[]
 
   @@map("users")
 }
@@ -55,26 +56,26 @@ model JobOpening {
   title            String
   company_name     String
   location         String
-  job_type         String    // Full-time, Part-time, Contract, Internship
-  experience_level String    // Entry, Mid, Senior, Lead
+  job_type         String // Full-time, Part-time, Contract, Internship
+  experience_level String // Entry, Mid, Senior, Lead
   description      String    @db.Text
-  responsibilities String[]  // Array of responsibilities
-  required_skills  String[]  // Array of required skills
-  preferred_skills String[]  // Array of preferred skills
-  stipend          String?   // Salary/Stipend range
+  responsibilities String[] // Array of responsibilities
+  required_skills  String[] // Array of required skills
+  preferred_skills String[] // Array of preferred skills
+  stipend          String? // Salary/Stipend range
   status           JobStatus @default(LIVE)
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
   // ATS JD Parsing Results
-  jd_hard_requirements String[]  @default([]) // Hard requirements from ATS parsing
-  jd_preferred_skills  String[]  @default([]) // Preferred skills from ATS parsing
-  jd_skill_normalization Json?                // Skill normalization mapping
+  jd_hard_requirements   String[] @default([]) // Hard requirements from ATS parsing
+  jd_preferred_skills    String[] @default([]) // Preferred skills from ATS parsing
+  jd_skill_normalization Json? // Skill normalization mapping
 
   // Relations
-  created_by    String
-  creator       User          @relation(fields: [created_by], references: [id])
-  applications  Application[]
+  created_by   String
+  creator      User          @relation(fields: [created_by], references: [id])
+  applications Application[]
 
   @@map("job_openings")
 }
@@ -92,10 +93,10 @@ model Application {
   social_data     Json?
 
   // ATS Scoring Results
-  ats_score          Int?      // ATS score (0-100)
-  ats_decision       String?   // Decision: "Accept", "Reject", etc.
-  ats_missing_skills String[]  @default([]) // Missing skills identified
-  ats_reasons        String[]  @default([]) // Reasons for the score
+  ats_score          Int? // ATS score (0-100)
+  ats_decision       String? // Decision: "Accept", "Reject", etc.
+  ats_missing_skills String[] @default([]) // Missing skills identified
+  ats_reasons        String[] @default([]) // Reasons for the score
 
   // Relations
   job_id String
@@ -109,20 +110,20 @@ model Application {
 
 // Interview model
 model Interview {
-  id             String      @id @default(uuid())
-  meeting_id     String      @unique
-  candidate_id   String
-  hr_id          String
-  scheduled_at   DateTime
-  duration       Int         @default(10) // 10 minutes session
-  status         String      @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
-  scores         Json?       // Scoring metrics (e.g., technical, communication, etc.)
-  feedback       String?     @db.Text
-  
+  id           String   @id @default(uuid())
+  meeting_id   String   @unique
+  candidate_id String
+  hr_id        String
+  scheduled_at DateTime
+  duration     Int      @default(10) // 10 minutes session
+  status       String   @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  scores       Json? // Scoring metrics (e.g., technical, communication, etc.)
+  feedback     String?  @db.Text
+
   // Relations
   application_id String
   application    Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
-  
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -138,4 +139,23 @@ model File {
   created_at DateTime @default(now())
 
   @@map("files")
+}
+
+// Meeting model for internal video calls
+model Meeting {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  location      String // Internal link e.g. /interview/room/[id]
+  googleEventId String? // ID of the synced Google Calendar event
+
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("meetings")
 }

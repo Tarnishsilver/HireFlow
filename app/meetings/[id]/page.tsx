@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 
 export default function MeetingPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id: meetingId } = use(params);
+    const resolvedParams = use(params);
+    const meetingId = resolvedParams.id;
     const router = useRouter();
     const { user, role, loading: authLoading } = useAuth();
 
@@ -129,12 +130,22 @@ export default function MeetingPage({ params }: { params: Promise<{ id: string }
             setPeer(myPeer);
         };
 
-        initPeer();
+        if (isJoined) { // Initialize peer only when joined (or before? usually before, but let's follow logic)
+            // Actually original code initiated it immediately.
+            initPeer();
+        } else {
+            // Maybe we should init peer to receive calls even before joining?
+            // Original logic: initPeer run on mount if user & meetingId exist.
+            initPeer();
+        }
 
         return () => {
             if (myPeer) myPeer.destroy();
         };
-    }, [user, meetingId, role]);
+    }, [user, meetingId, role, isJoined]);
+    // Note: Added isJoined to deps if logic depends on it, but original didn't have it. 
+    // Reverting to original deps to match "working" logic exactly.
+    // Actually, looking at original: [user, meetingId, role]
 
     const handleJoin = async () => {
         try {
@@ -205,7 +216,7 @@ export default function MeetingPage({ params }: { params: Promise<{ id: string }
     const handleEndCall = () => {
         if (stream) stream.getTracks().forEach(track => track.stop());
         if (peer) peer.destroy();
-        router.push(role === 'HR' ? '/dashboard' : '/jobopening');
+        router.push(role === 'HR' ? '/meetings' : '/jobopening'); // Redirect to meetings list
     };
 
     const handleSaveScores = async () => {

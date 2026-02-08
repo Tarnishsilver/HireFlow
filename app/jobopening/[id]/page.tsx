@@ -172,24 +172,26 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     </div>
                 </div>
 
-                {/* Apply Button - Fixed on mobile */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border sm:relative sm:p-0 sm:border-0 sm:bg-transparent sm:mb-6">
-                    {job.status === 'LIVE' ? (
-                        <Link
-                            href={user ? `/apply/${job.id}` : `/?redirect=/apply/${job.id}`}
-                            className="block w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium text-center hover:opacity-90 transition-opacity"
-                        >
-                            {user ? 'Apply Now' : 'Sign In to Apply'}
-                        </Link>
-                    ) : (
-                        <button
-                            disabled
-                            className="block w-full py-3 bg-muted text-muted-foreground rounded-lg font-medium text-center cursor-not-allowed"
-                        >
-                            Applications Closed
-                        </button>
-                    )}
-                </div>
+                {/* Apply Button - Hide for HR */}
+                {role !== 'HR' && (
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border sm:relative sm:p-0 sm:border-0 sm:bg-transparent sm:mb-6">
+                        {job.status === 'LIVE' ? (
+                            <Link
+                                href={user ? `/apply/${job.id}` : `/?redirect=/apply/${job.id}`}
+                                className="block w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium text-center hover:opacity-90 transition-opacity"
+                            >
+                                {user ? 'Apply Now' : 'Sign In to Apply'}
+                            </Link>
+                        ) : (
+                            <button
+                                disabled
+                                className="block w-full py-3 bg-muted text-muted-foreground rounded-lg font-medium text-center cursor-not-allowed"
+                            >
+                                Applications Closed
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* Description */}
                 <section className="bg-card border border-border rounded-xl p-6 mb-6">

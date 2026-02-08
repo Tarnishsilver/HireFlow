@@ -5,6 +5,7 @@ import { useDemoStore } from '@/lib/store/useDemoStore';
 import { ArrowLeft, Download, Share2, CheckCircle, XCircle, AlertTriangle, MessageSquare, Code2, Brain } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import React from 'react';
 
 export default function ReportPage() {
     const { id } = useParams();
