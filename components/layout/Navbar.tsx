@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { User as UserIcon, LogOut, Plus, Sun, Moon } from 'lucide-react';
+import { User as UserIcon, LogOut, Plus, Sun, Moon, Settings, HelpCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -31,7 +31,7 @@ export const Navbar = ({ user, onSignIn, onSignOut, position = 'top' }: NavbarPr
   }, []);
 
   const navLinks = [
-    { name: 'OVERVIEW', href: '/dashboard', isActive: pathname === '/dashboard' },
+    { name: 'DASHBOARD', href: '/dashboard', isActive: pathname === '/dashboard' },
     { name: 'RECRUITMENT', href: '/recruitment/jobs', isActive: pathname?.startsWith('/recruitment') },
     { name: 'INTERVIEWS', href: '/interview', isActive: pathname?.startsWith('/interview') },
     { name: 'PAYROLL', href: '/payroll', isActive: pathname?.startsWith('/payroll') },
@@ -48,7 +48,7 @@ export const Navbar = ({ user, onSignIn, onSignOut, position = 'top' }: NavbarPr
       className={`
         bg-background text-foreground transition-all duration-300 border-border
         ${isLeft
-          ? 'h-screen w-64 border-r fixed left-0 top-0 flex flex-col p-4 z-50'
+          ? 'h-screen w-64 border-r fixed left-0 top-0 flex flex-col p-4 z-50 overflow-y-auto custom-scrollbar'
           : 'sticky top-0 z-50 w-full h-[56px] border-b flex items-center px-6'
         }
       `}
@@ -117,6 +117,54 @@ export const Navbar = ({ user, onSignIn, onSignOut, position = 'top' }: NavbarPr
             );
           })}
         </div>
+
+        {/* DEPARTMENTS & OTHER (Vertical Only) */}
+        {isLeft && (
+          <div className="flex flex-col gap-6 w-full px-2">
+
+            {/* DEPARTMENT SECTION */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground tracking-wider uppercase">
+                <span>Department</span>
+                <button className="hover:text-foreground transition-colors">
+                  <Plus size={14} />
+                </button>
+              </div>
+              <div className="space-y-1">
+                {[
+                  { name: 'Business and Marketing', color: 'bg-blue-500' },
+                  { name: 'Design', color: 'bg-emerald-500' },
+                  { name: 'Project Manager', color: 'bg-orange-500' },
+                  { name: 'Human Resource', color: 'bg-purple-500' },
+                  { name: 'Development', color: 'bg-blue-600' },
+                ].map((dept) => (
+                  <div key={dept.name} className="flex items-center gap-3 px-2 py-1.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md cursor-pointer transition-colors group">
+                    <div className={`w-2 h-2 rounded-sm ${dept.color}`} />
+                    <span className="truncate">{dept.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* OTHER SECTION */}
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">
+                Other
+              </div>
+              <div className="space-y-1">
+                <Link href="/settings" className="flex items-center gap-3 px-2 py-1.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors group">
+                  <Settings size={16} />
+                  <span>Setting</span>
+                </Link>
+                <Link href="/help" className="flex items-center gap-3 px-2 py-1.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors group">
+                  <HelpCircle size={16} />
+                  <span>Help Center</span>
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        )}
 
         {/* RIGHT ACTIONS */}
         <div className={`flex items-center gap-4 ${isLeft ? 'mt-auto flex-col-reverse w-full items-start pt-4 border-t border-border' : 'ml-auto'}`}>
