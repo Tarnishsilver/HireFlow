@@ -46,6 +46,7 @@
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.7.0",
     "sentiment": "^5.0.2",
     "tailwind-merge": "^3.4.0",
     "tesseract.js": "^7.0.0",
@@ -64,6 +65,10 @@
     "prisma": "^5.10.0",
     "puppeteer": "^24.36.1",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
 }

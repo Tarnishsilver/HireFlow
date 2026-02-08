@@ -2,21 +2,13 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { EmailPanel } from '@/components/dashboard/EmailPanel';
-import { CalendarPanel } from '@/components/dashboard/CalendarPanel';
 import { getDashboardData, createSingleCalendarEvent, getDashboardCache } from '@/app/actions';
-import {
-    Briefcase, Plus, MapPin, Clock, Users, Loader2, LogOut, Eye,
-    RefreshCw, ShieldAlert, Calendar, Mail, FileText, Flame, Share2
-} from 'lucide-react';
+import { RefreshCw, Loader2, Clock } from 'lucide-react';
 
-// import { PrismFluxLoader } from '@/components/ui/prism-flux-loader'; // Removed per user request
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
-import { FadeIn, FadeInStagger } from '@/components/animations/FadeIn';
 import { CreateEventModal } from '@/components/dashboard/CreateEventModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 
@@ -35,6 +27,19 @@ interface Job {
 }
 
 type DashboardTab = 'overview' | 'jobs';
+
+// Import Orchids components
+import { PaymentMethodCard } from '@/components/orchids/dashboard/PaymentMethodCard';
+import { WhatsOnCard } from '@/components/orchids/dashboard/WhatsOnCard';
+import { TodayScheduleCard } from '@/components/orchids/dashboard/TodayScheduleCard';
+import { JobCard } from '@/components/orchids/dashboard/JobCard';
+import { EmployeeCard } from '@/components/orchids/dashboard/EmployeeCard';
+import { WorkHoursCard } from '@/components/orchids/dashboard/WorkHoursCard';
+import { BrooklynCard } from '@/components/orchids/dashboard/BrooklynCard';
+import { LeaveRequestCard } from '@/components/orchids/dashboard/LeaveRequestCard';
+import { AnnualLeaveCard } from '@/components/orchids/dashboard/AnnualLeaveCard';
+import { EmailPanel } from '@/components/dashboard/EmailPanel';
+import { CalendarPanel } from '@/components/dashboard/CalendarPanel';
 
 function DashboardContent() {
     const router = useRouter();
@@ -352,81 +357,107 @@ function DashboardContent() {
         );
     }
 
-
-
-    // ... (other imports remain, but I need to make sure I don't delete them. I'll just replace the component render part mainly, but since I have to replace a large chunk, I'll be careful)
-
     if (!user || role !== 'HR') {
         return null;
     }
 
     return (
         <MainLayout user={user} onSignIn={() => { }} onSignOut={signOut}>
-            {/* Main Content */}
-            <div className="px-4 sm:px-6 lg:px-8 py-6 relative bg-background">
-                /* Overview Tab - Email & Calendar */
-                <FadeInStagger key="overview">
-                    <FadeIn>
-                        {/* Dashboard Cards Removed per request - moved Policy to Nav */}
-                    </FadeIn>
-                    <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 relative">
+            {/* Main Content - Orchids UI Clone Grid Layout */}
+            <div className="min-h-full bg-gray-50/80 dark:bg-background p-6 overflow-auto">
+                <div className="max-w-[1400px] mx-auto space-y-4">
 
-                        {/* Left Panel: Calendar (3/4 of screen) - Always present */}
-                        <div className="flex-[3] min-w-0 h-[calc(100vh-130px)] flex flex-col">
-                            <CalendarPanel events={data?.events || []} loading={loadingData && !data} onAddEvent={handleNewEvent} />
+                    {/* Header with Sync Button */}
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-foreground">Dashboard</h2>
+                        <button
+                            onClick={handleSync}
+                            disabled={loadingData}
+                            className="text-xs border border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground px-3 py-1.5 rounded-lg hover:bg-white dark:hover:bg-card transition-colors font-medium flex items-center gap-1.5"
+                        >
+                            <RefreshCw size={12} className={loadingData ? "animate-spin" : ""} />
+                            Sync Emails & Calendar
+                        </button>
+                    </div>
+
+                    {/* Row 1: Payment Method (Left 3 cols, span 1?), What's On, Schedule, Job */}
+                    {/* The clone has a specific grid. Let's try to match it but adapt to full width. */}
+
+                    {/* Top Section - Payment Method Full Width */}
+                    <div className="w-full">
+                        <PaymentMethodCard />
+                    </div>
+
+                    {/* Second Row: What's On, Schedule, Job */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {/* What's On */}
+                        <div>
+                            <WhatsOnCard />
                         </div>
 
-                        {/* Right Panel: Email Summary (1/4 of screen) - Always present */}
-                        <div className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-130px)] flex flex-col">
-                            <div className="mb-2 flex justify-between items-center">
-                                <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
-                                <button
-                                    onClick={handleSync}
-                                    disabled={loadingData}
-                                    className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
-                                >
-                                    <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
-                                    Sync
-                                </button>
-                            </div>
-                            <div className="flex-1 min-h-0">
-                                <EmailPanel emails={data?.emails || []} loading={loadingData && !data} onAddToCalendar={handleAddToCalendar} />
-                            </div>
+                        {/* Today Schedule - Connected to Real Data */}
+                        <div>
+                            <TodayScheduleCard events={data?.events} onAddEvent={handleNewEvent} />
+                        </div>
+
+                        {/* Job Card - Connected to Real Data */}
+                        <div>
+                            {/* Show the most recent job */}
+                            <JobCard job={jobs[0]} />
                         </div>
                     </div>
 
-                    {/* Sync Status Footer - inside Overview Tab */}
-                    {data?.last_sync && (
-                        <div className="mt-4 flex items-center justify-between px-1">
-                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                                <Clock size={10} />
-                                Last synced: {new Date(data.last_sync).toLocaleString()}
-                            </span>
-                            {loadingData && (
-                                <span className="text-[10px] text-primary font-bold uppercase tracking-widest flex items-center gap-2">
-                                    <RefreshCw size={10} className="animate-spin" />
-                                    Syncing fresh data...
-                                </span>
-                            )}
-                        </div>
-                    )}
 
-                    {error && (
-                        <FadeIn>
-                            <div className="mt-4 flex flex-col items-center justify-center text-center p-6 bg-card rounded-2xl border border-destructive/20">
-                                <ShieldAlert className="text-destructive mb-2" size={32} />
-                                <h2 className="text-lg font-bold mb-1 text-destructive">Connection Error</h2>
-                                <p className="text-xs text-muted-foreground max-w-md mb-4">{error}</p>
-                                <button
-                                    onClick={handleConnectGoogle}
-                                    className="px-4 py-1.5 bg-muted rounded-md font-semibold hover:bg-muted/80 transition-colors text-xs"
-                                >
-                                    Reconnect
-                                </button>
+                    {/* Middle Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                        {/* Employee - using 5 cols */}
+                        <div className="lg:col-span-5">
+                            <EmployeeCard />
+                        </div>
+
+                        {/* Work Hours - using 7 cols */}
+                        <div className="lg:col-span-7">
+                            <WorkHoursCard />
+                        </div>
+                    </div>
+
+                    {/* Bottom Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                        <div className="lg:col-span-4 md:col-span-6">
+                            <BrooklynCard /> {/* Maybe rename to ProfileCard? */}
+                        </div>
+                        <div className="lg:col-span-3 md:col-span-6">
+                            <LeaveRequestCard />
+                        </div>
+                        <div className="lg:col-span-5">
+                            <AnnualLeaveCard />
+                        </div>
+                    </div>
+
+                    {/* Restored Google Workspace Panels */}
+                    <div className="mt-8">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-foreground mb-4">Google Workspace Integration</h3>
+                        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 relative h-[600px]">
+                            {/* Left Panel: Calendar (3/4 of screen) */}
+                            <div className="flex-[3] min-w-0 h-full flex flex-col">
+                                <CalendarPanel events={data?.events || []} loading={loadingData && !data} onAddEvent={handleNewEvent} />
                             </div>
-                        </FadeIn>
-                    )}
-                </FadeInStagger>
+
+                            {/* Right Panel: Email Summary (1/4 of screen) */}
+                            <div className="flex-1 min-w-0 w-full lg:w-80 h-full flex flex-col">
+                                <div className="mb-2 flex justify-between items-center bg-white dark:bg-card p-2 rounded-t-lg border-b border-gray-100 dark:border-border">
+                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {data?.emails?.length || 0} recent
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-h-0 border border-gray-100 dark:border-border rounded-b-lg overflow-hidden">
+                                    <EmailPanel emails={data?.emails || []} loading={loadingData && !data} onAddToCalendar={handleAddToCalendar} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Event Creation Modal */}

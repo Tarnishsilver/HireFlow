@@ -36,6 +36,7 @@ export const Navbar = ({ user, onSignIn, onSignOut, position = 'top' }: NavbarPr
     { name: 'INTERVIEWS', href: '/interview', isActive: pathname?.startsWith('/interview') },
     { name: 'PAYROLL', href: '/payroll', isActive: pathname?.startsWith('/payroll') },
     { name: 'SCHEDULE', href: '/meetings', isActive: pathname?.startsWith('/meetings') },
+    { name: 'EMPLOYEE', href: '/employee', isActive: pathname?.startsWith('/employee') },
     { name: 'ANALYTICS', href: '/analytics', isActive: pathname?.startsWith('/analytics') },
   ];
 
