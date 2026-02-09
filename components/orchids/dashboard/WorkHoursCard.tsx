@@ -39,18 +39,18 @@ export function WorkHoursCard() {
 
     if (loading) {
         return (
-            <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 dark:border-border p-5 shadow-sm min-h-[300px] flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <div className="bg-white dark:bg-[#242424] rounded-2xl border border-gray-100 dark:border-white/[0.08] p-5 min-h-[300px] flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-white/30" />
             </div>
         );
     }
 
     return (
-        <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 dark:border-border p-5 shadow-sm h-full flex flex-col">
+        <div className="bg-white dark:bg-[#242424] rounded-2xl border border-gray-100 dark:border-white/[0.08] p-5 h-full flex flex-col">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-[15px] text-gray-900 dark:text-foreground">Member Work Hours</h3>
-                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <MoreHorizontal className="w-5 h-5" />
+                <h3 className="font-semibold text-[15px] text-gray-900 dark:text-white/90">Member Work Hours</h3>
+                <button className="text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 transition-colors">
+                    <MoreHorizontal className="w-5 h-5" strokeWidth={1.5} />
                 </button>
             </div>
 
@@ -61,23 +61,23 @@ export function WorkHoursCard() {
                             dataKey="name"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }}
                             dy={10}
                         />
                         <Tooltip
                             cursor={{ fill: 'transparent' }}
                             contentStyle={{
-                                backgroundColor: '#1F2937',
-                                border: 'none',
-                                borderRadius: '8px',
-                                color: '#F3F4F6'
+                                backgroundColor: '#242424',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '12px',
+                                color: '#fff'
                             }}
                         />
                         <Bar
                             dataKey="hours"
                             fill="#6366f1"
-                            radius={[6, 6, 6, 6]}
-                            background={{ fill: '#F3F4F6', radius: [6, 6, 6, 6] }}
+                            radius={[8, 8, 8, 8]}
+                            background={{ fill: 'rgba(255,255,255,0.04)', radius: [8, 8, 8, 8] }}
                         />
                     </BarChart>
                 </ResponsiveContainer>

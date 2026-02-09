@@ -116,39 +116,39 @@ export const PayrollTable = ({ onViewPayslip }: { onViewPayslip: (employee: any)
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-slate-50 dark:bg-muted/30 border-b border-slate-200 dark:border-border">
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">Employee</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">Department</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider text-right">Gross Pay</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider text-right">Deductions</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider text-right">Net Pay</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider text-center">Status</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider text-right">Actions</th>
+                        <tr className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/[0.06]">
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider">Employee</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider">Department</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider text-right">Gross Pay</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider text-right">Deductions</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider text-right">Net Pay</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider text-center">Status</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-border/50">
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                         {filteredEmployees.map((emp) => (
                             <tr
                                 key={emp.id}
-                                className="group hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors"
+                                className="group hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
                             >
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <img src={emp.avatar} alt={emp.name} className="w-9 h-9 rounded-full object-cover border border-slate-100 dark:border-border" />
+                                        <img src={emp.avatar} alt={emp.name} className="w-9 h-9 rounded-full object-cover border border-slate-100 dark:border-white/[0.08]" />
                                         <div>
-                                            <p className="font-medium text-sm text-slate-900 dark:text-foreground">{emp.name}</p>
-                                            <p className="text-xs text-slate-500 dark:text-muted-foreground">{emp.role}</p>
+                                            <p className="font-medium text-sm text-slate-900 dark:text-white/90">{emp.name}</p>
+                                            <p className="text-xs text-slate-500 dark:text-white/40">{emp.role}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-sm text-slate-600 dark:text-muted-foreground">
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-muted text-slate-800 dark:text-foreground">
+                                <td className="px-6 py-4 text-sm text-slate-600 dark:text-white/50">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-white/[0.06] text-slate-800 dark:text-white/70">
                                         {emp.department}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-foreground text-right">{emp.grossPay}</td>
+                                <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white/90 text-right">{emp.grossPay}</td>
                                 <td className="px-6 py-4 text-sm text-red-500 dark:text-red-400 text-right">-{emp.deductions}</td>
-                                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-foreground text-right">{emp.netPay}</td>
+                                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white/90 text-right">{emp.netPay}</td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={`
                                         inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium

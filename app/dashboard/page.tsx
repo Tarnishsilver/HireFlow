@@ -364,7 +364,7 @@ function DashboardContent() {
     return (
         <MainLayout user={user} onSignIn={() => { }} onSignOut={signOut}>
             {/* Main Content - Orchids UI Clone Grid Layout */}
-            <div className="min-h-full bg-gray-50/80 dark:bg-background p-6 overflow-auto">
+            <div className="min-h-full bg-gray-50/80 dark:bg-[#1e1e1e] p-6 overflow-auto">
                 <div className="max-w-[1400px] mx-auto space-y-4">
 
                     {/* Header with Sync Button */}

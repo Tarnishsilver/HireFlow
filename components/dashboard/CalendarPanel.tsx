@@ -3,7 +3,6 @@
 import React, { useMemo } from 'react';
 import { FullScreenCalendar } from '@/components/ui/fullscreen-calendar';
 import { CalendarEvent } from '@/lib/summarizer-scrape/calendar';
-import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
 
 interface CalendarPanelProps {
     events: CalendarEvent[];
@@ -15,7 +14,6 @@ interface CalendarPanelProps {
 export const CalendarPanel = ({ events, loading, onEventClick, onAddEvent }: CalendarPanelProps) => {
     // Transform Google Calendar events to FullScreenCalendar format
     const calendarData = useMemo(() => {
-        // Group events by day
         const eventsByDay = new Map<string, { day: Date; events: { id: string; name: string; time: string; datetime: string; category?: string }[] }>();
 
         events.forEach(event => {
@@ -34,7 +32,7 @@ export const CalendarPanel = ({ events, loading, onEventClick, onAddEvent }: Cal
                 name: event.title,
                 time: event.time,
                 datetime: event.start,
-                category: event.category, // Pass category
+                category: event.category,
             });
         });
 
@@ -43,8 +41,9 @@ export const CalendarPanel = ({ events, loading, onEventClick, onAddEvent }: Cal
 
     if (loading) {
         return (
-            <div className="flex flex-col h-full bg-card border border-border items-center justify-center">
-                <PrismFluxLoader size={50} speed={5} />
+            <div className="flex flex-col h-full items-center justify-center p-8">
+                <div className="h-10 w-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                <p className="mt-4 text-sm text-muted-foreground font-light">Loading calendar...</p>
             </div>
         );
     }

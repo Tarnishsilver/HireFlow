@@ -548,7 +548,7 @@ export default function EmployeePage() {
 
     return (
         <MainLayout user={user} onSignIn={() => { }} onSignOut={signOut}>
-            <div className="bg-gray-50/80 dark:bg-background min-h-full">
+            <div className="bg-[#f8f9fc] dark:bg-background min-h-full">
                 <div className="max-w-[1400px] mx-auto p-4 md:p-6 space-y-4">
                     <TopBar />
                     <EmployeeHeader setIsAddModalOpen={setIsAddModalOpen} />

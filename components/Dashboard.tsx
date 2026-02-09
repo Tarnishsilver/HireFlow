@@ -6,8 +6,7 @@ import { EmailPanel } from './dashboard/EmailPanel';
 import { CalendarPanel } from './dashboard/CalendarPanel';
 import { CandidatesPanel } from './dashboard/CandidatesPanel';
 import { getDashboardData, createSingleCalendarEvent } from '@/app/actions';
-import { RefreshCw, Lock, LogOut, Users } from 'lucide-react';
-import { PrismFluxLoader } from '@/components/ui/prism-flux-loader';
+import { RefreshCw, Lock, LogOut, Users, Loader2 } from 'lucide-react';
 import { auth, googleProvider } from '@/app/firebase';
 import { signInWithPopup, User, signOut, GoogleAuthProvider } from 'firebase/auth';
 import { EmailSummary } from '@/lib/summarizer-scrape/gmail';
@@ -25,7 +24,6 @@ export default function DashboardPage() {
     const [lastSync, setLastSync] = useState<Date | null>(null);
     const { user: authUser } = useAuth();
 
-    // Cache key for localStorage
     const getCacheKey = (uid: string) => `hrtech_dashboard_cache_${uid}`;
 
     useEffect(() => {
@@ -33,7 +31,6 @@ export default function DashboardPage() {
             setUser(currentUser);
             setLoadingAuth(false);
 
-            // Load cached data immediately if user is logged in
             if (currentUser) {
                 const cacheKey = getCacheKey(currentUser.uid);
                 const cached = localStorage.getItem(cacheKey);
@@ -42,7 +39,6 @@ export default function DashboardPage() {
                         const parsedCache = JSON.parse(cached);
                         setData(parsedCache.data);
                         setLastSync(new Date(parsedCache.timestamp));
-                        console.log('[Dashboard] Loaded cached data from', new Date(parsedCache.timestamp));
                     } catch (e) {
                         console.error('Failed to parse cached data:', e);
                     }
@@ -84,24 +80,21 @@ export default function DashboardPage() {
             setData(result);
             setLastSync(new Date());
 
-            // Save to localStorage cache
             if (user) {
                 const cacheKey = getCacheKey(user.uid);
                 localStorage.setItem(cacheKey, JSON.stringify({
                     data: result,
                     timestamp: Date.now()
                 }));
-                console.log('[Dashboard] Cached data to localStorage');
             }
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to fetch dashboard data. Your session may have expired.');
+            setError(err.message || 'Failed to fetch dashboard data.');
         } finally {
             setLoadingData(false);
         }
     };
 
-    // Fetch applications for HR users
     const fetchApplications = async () => {
         if (!authUser) return;
 
@@ -125,7 +118,6 @@ export default function DashboardPage() {
         }
     };
 
-    // Fetch applications when authUser changes
     useEffect(() => {
         if (authUser) {
             fetchApplications();
@@ -138,7 +130,6 @@ export default function DashboardPage() {
         try {
             let token = accessToken;
 
-            // First, try to get stored token from backend (from HR login)
             if (!token) {
                 const firebaseToken = await user.getIdToken();
                 const tokenRes = await fetch('/api/auth/store-token', {
@@ -153,14 +144,11 @@ export default function DashboardPage() {
                     if (tokenData.hasToken && tokenData.google_access_token) {
                         token = tokenData.google_access_token;
                         setAccessToken(token);
-                        console.log('[Dashboard] Using stored Google token');
                     }
                 }
             }
 
-            // Only if no stored token, prompt for re-auth
             if (!token) {
-                console.log('[Dashboard] No stored token, prompting for OAuth');
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
                 token = credential?.accessToken || null;
@@ -173,7 +161,6 @@ export default function DashboardPage() {
 
             if (res.success) {
                 alert(`Successfully created ${res.count} calendar events from emails!`);
-                // Refresh data
                 fetchData(token);
             }
         } catch (err: any) {
@@ -185,7 +172,6 @@ export default function DashboardPage() {
     };
 
     const handleNewEvent = async () => {
-        // Prompt user for event details
         const title = prompt('Event title:');
         if (!title) return;
 
@@ -200,7 +186,6 @@ export default function DashboardPage() {
         try {
             let token = accessToken;
 
-            // If we don't have a token, we need to re-authenticate
             if (!token) {
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -226,7 +211,6 @@ export default function DashboardPage() {
 
             alert(`✅ Added "${title}" to your Google Calendar!`);
 
-            // Refresh calendar data
             if (token) fetchData(token);
         } catch (err: any) {
             console.error('Failed to create event:', err);
@@ -240,7 +224,6 @@ export default function DashboardPage() {
         try {
             let token = accessToken;
 
-            // If we don't have a token, we need to re-authenticate
             if (!token) {
                 const result = await signInWithPopup(auth, googleProvider);
                 const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -268,7 +251,6 @@ export default function DashboardPage() {
 
             alert(`✅ Added "${event.title}" to your Google Calendar!`);
 
-            // Refresh calendar data
             if (token) fetchData(token);
         } catch (err: any) {
             console.error('Failed to add event:', err);
@@ -279,7 +261,10 @@ export default function DashboardPage() {
     if (loadingAuth) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <PrismFluxLoader size={40} speed={4} />
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" strokeWidth={1.5} />
+                    <p className="text-sm text-muted-foreground">Loading...</p>
+                </div>
             </div>
         );
     }
@@ -288,92 +273,96 @@ export default function DashboardPage() {
         <div className="dashboard min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20">
             <Navbar user={user} onSignIn={handleLogin} onSignOut={handleLogout} />
 
-            <main className="flex-1 flex flex-col md:flex-row gap-6 p-6 md:p-8 max-w-7xl mx-auto w-full overflow-hidden">
+            <main className="flex-1 flex flex-col md:flex-row gap-6 p-6 lg:p-8 max-w-[1800px] mx-auto w-full overflow-hidden">
                 {!user ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border shadow-sm">
-                        <div className="h-16 w-16 bg-primary/10 flex items-center justify-center rounded-2xl mb-6">
-                            <Lock className="text-primary" size={32} />
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+                        <div className="glass-card rounded-3xl p-12 max-w-md">
+                            <div className="h-16 w-16 bg-primary/10 flex items-center justify-center rounded-2xl mb-8 mx-auto">
+                                <Lock className="text-primary" size={28} strokeWidth={1.5} />
+                            </div>
+                            <h2 className="text-2xl font-light mb-3">Secure HR Dashboard</h2>
+                            <p className="text-muted-foreground text-sm font-light mb-8 leading-relaxed">
+                                Access your personalized HR digest and calendar by signing in with your corporate Google account.
+                            </p>
+                            <button
+                                onClick={handleLogin}
+                                className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-medium shadow-premium hover:bg-primary/90 transition-all animate-premium-fade"
+                            >
+                                Sign In with Google
+                            </button>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">Secure HR Dashboard</h2>
-                        <p className="text-muted-foreground max-w-md mb-8">
-                            Access your personalized HR digest and calendar by signing in with your corporate Google account.
-                        </p>
-                        <button
-                            onClick={handleLogin}
-                            className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
-                        >
-                            Sign In with Google
-                        </button>
                     </div>
                 ) : (
                     <>
-                        {/* Loading Overlay for Sync Operations */}
+                        {/* Loading Overlay */}
                         {loadingData && (
-                            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-                                <PrismFluxLoader size={60} speed={4} />
-                                <p className="mt-6 text-lg font-medium text-foreground">Syncing with Google Workspace...</p>
-                                <p className="mt-2 text-sm text-muted-foreground">Fetching emails, calendar events, and generating summaries</p>
+                            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
+                                <Loader2 className="h-12 w-12 text-primary animate-spin mb-6" strokeWidth={1.5} />
+                                <p className="text-lg font-light text-foreground">Syncing with Google Workspace...</p>
+                                <p className="mt-2 text-sm text-muted-foreground font-light">Fetching emails, calendar events, and generating summaries</p>
                             </div>
                         )}
 
-                        {/* Always show dashboard layout - calendar visible even before sync */}
-                        <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
-                            {/* Left Panel: Calendar (2/4 of screen) - ALWAYS VISIBLE */}
-                            <section className="flex-[2] min-w-0 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
-                                <div className="mb-2 flex justify-between items-center">
-                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Calendar</h3>
+                        {/* Dashboard Grid */}
+                        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+                            {/* Calendar Panel - Primary */}
+                            <section className="flex-[2] min-w-0 h-[calc(100vh-140px)] flex flex-col">
+                                <div className="mb-4 flex justify-between items-center">
+                                    <h3 className="text-caption text-muted-foreground px-1">Calendar</h3>
                                     {lastSync && (
-                                        <span className="text-[10px] text-muted-foreground">
+                                        <span className="text-[11px] text-muted-foreground font-light">
                                             Last synced: {lastSync.toLocaleTimeString()}
                                         </span>
                                     )}
                                 </div>
-                                <CalendarPanel events={data?.events || []} loading={loadingData} onAddEvent={handleNewEvent} />
+                                <div className="flex-1 glass-card rounded-2xl overflow-hidden">
+                                    <CalendarPanel events={data?.events || []} loading={loadingData} onAddEvent={handleNewEvent} />
+                                </div>
                             </section>
 
-                            {/* Middle Panel: Candidates (1/4 of screen) */}
-                            <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
-                                <div className="mb-2 flex justify-between items-center">
-                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1 flex items-center gap-1">
-                                        <Users size={12} />
+                            {/* Candidates Panel */}
+                            <section className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-140px)] flex flex-col">
+                                <div className="mb-4 flex justify-between items-center">
+                                    <h3 className="text-caption text-muted-foreground px-1 flex items-center gap-2">
+                                        <Users size={12} strokeWidth={1.5} />
                                         Candidates
                                     </h3>
                                     <button
                                         onClick={fetchApplications}
                                         disabled={loadingApplications}
-                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
+                                        className="text-[11px] text-muted-foreground px-3 py-1.5 hover:bg-muted/40 rounded-lg transition-all flex items-center gap-1.5 font-medium"
                                     >
-                                        <RefreshCw size={10} className={loadingApplications ? "animate-spin" : ""} />
+                                        <RefreshCw size={11} className={loadingApplications ? "animate-spin" : ""} strokeWidth={1.5} />
                                         Refresh
                                     </button>
                                 </div>
-                                <div className="flex-1 min-h-0">
+                                <div className="flex-1 glass-card rounded-2xl overflow-hidden">
                                     <CandidatesPanel applications={applications} loading={loadingApplications} />
                                 </div>
                             </section>
 
-                            {/* Right Panel: Email Summary (1/4 of screen) */}
-                            <section className="flex-1 min-w-0 w-full md:w-80 h-[calc(100vh-120px)] md:h-[calc(100vh-100px)] flex flex-col">
-                                <div className="mb-2 flex justify-between items-center">
-                                    <h3 className="font-bold text-xs uppercase tracking-wider px-1">Emails</h3>
+                            {/* Email Panel */}
+                            <section className="flex-1 min-w-0 w-full lg:w-80 h-[calc(100vh-140px)] flex flex-col">
+                                <div className="mb-4 flex justify-between items-center">
+                                    <h3 className="text-caption text-muted-foreground px-1">Emails</h3>
                                     <button
                                         onClick={!data ? handleLogin : handleSync}
                                         disabled={loadingData}
-                                        className="text-[10px] border border-foreground/20 text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors font-medium flex items-center gap-1"
+                                        className="text-[11px] text-muted-foreground px-3 py-1.5 hover:bg-muted/40 rounded-lg transition-all flex items-center gap-1.5 font-medium"
                                     >
-                                        <RefreshCw size={10} className={loadingData ? "animate-spin" : ""} />
+                                        <RefreshCw size={11} className={loadingData ? "animate-spin" : ""} strokeWidth={1.5} />
                                         {!data ? 'Sync Now' : 'Sync'}
                                     </button>
                                 </div>
-                                <div className="flex-1 min-h-0">
+                                <div className="flex-1 glass-card rounded-2xl overflow-hidden">
                                     {!data && !loadingData ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-card border border-border rounded-lg">
-                                            <p className="text-sm text-muted-foreground mb-4">
+                                        <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                                            <p className="text-sm text-muted-foreground font-light mb-6">
                                                 Sync with Google to load emails
                                             </p>
                                             <button
                                                 onClick={handleLogin}
-                                                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90"
+                                                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all"
                                             >
                                                 Sync Data
                                             </button>
@@ -388,25 +377,26 @@ export default function DashboardPage() {
                 )}
             </main>
 
-            <footer className="h-10 border-t border-border bg-card/50 flex items-center px-8 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${user ? 'bg-green-500 animate-pulse' : 'bg-muted'}`}></span>
+            {/* Footer */}
+            <footer className="h-12 border-t border-border/50 glass flex items-center px-8">
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-light">
+                    <div className="flex items-center gap-2">
+                        <span className={`h-1.5 w-1.5 rounded-full ${user ? 'bg-chart-2 animate-pulse' : 'bg-muted-foreground/30'}`}></span>
                         {user ? 'Systems Active' : 'Waiting for Auth'}
                     </div>
                     {user && (
                         <>
-                            <div className="h-3 w-px bg-border"></div>
+                            <div className="h-3 w-px bg-border/50"></div>
                             <div>Cloud sync: {data ? 'Online' : 'Pending'}</div>
-                            <div className="h-3 w-px bg-border"></div>
-                            <button onClick={handleLogout} className="hover:text-foreground flex items-center gap-1">
-                                <LogOut size={10} />
+                            <div className="h-3 w-px bg-border/50"></div>
+                            <button onClick={handleLogout} className="hover:text-foreground flex items-center gap-1.5 transition-colors">
+                                <LogOut size={11} strokeWidth={1.5} />
                                 Sign Out
                             </button>
                         </>
                     )}
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto text-[11px] text-muted-foreground font-light">
                     © 2026 HR Pulse Enterprise
                 </div>
             </footer>

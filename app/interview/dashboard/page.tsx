@@ -76,18 +76,18 @@ export default function HRDashboard() {
             </div >
 
             {/* Audit Log / Recent Activity */}
-            < div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden" >
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <h3 className="font-bold text-slate-900 dark:text-white">System Audit Log</h3>
+            < div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-white/[0.08] shadow-sm overflow-hidden" >
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white/90">System Audit Log</h3>
                 </div>
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                <div className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                     {[
                         { action: "Anonymous Mode Enabled", user: "Admin User", time: "2 mins ago", type: "system" },
                         { action: "Interview Config Updated (FAANG - High)", user: "HR Manager", time: "15 mins ago", type: "config" },
                         { action: "Report Generated: Candidate-842", user: "System AI", time: "1 hour ago", type: "report" },
                         { action: "Plagiarism Warning Triggered: Session #9921", user: "Automated Check", time: "3 hours ago", type: "alert" }
                     ].map((log, idx) => (
-                        <div key={idx} className="px-6 py-3 flex items-center justify-between text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        <div key={idx} className="px-6 py-3 flex items-center justify-between text-sm hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                             <div className="flex items-center gap-3">
                                 <div className={`w-2 h-2 rounded-full ${log.type === 'alert' ? 'bg-red-500' :
                                     log.type === 'system' ? 'bg-indigo-500' : 'bg-slate-400'
@@ -108,13 +108,13 @@ export default function HRDashboard() {
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string | number, color: string }) {
     return (
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+        <div className="bg-white dark:bg-card p-5 rounded-xl border border-slate-200 dark:border-white/[0.08] shadow-sm flex items-center gap-4">
             <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center`}>
                 {icon}
             </div>
             <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+                <p className="text-sm font-medium text-slate-500 dark:text-white/50">{label}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white/90">{value}</p>
             </div>
         </div>
     );
