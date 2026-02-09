@@ -224,7 +224,6 @@ async function sendMessage(recipientName: string, content: string) {
             content: content,
             sender_id: sender.id,
             receiver_id: recipient.id,
-            type: 'Direct',
             created_at: new Date()
         }
     });

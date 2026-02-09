@@ -77,7 +77,7 @@ export function WorkHoursCard() {
                             dataKey="hours"
                             fill="#6366f1"
                             radius={[8, 8, 8, 8]}
-                            background={{ fill: 'rgba(255,255,255,0.04)', radius: [8, 8, 8, 8] }}
+                            background={{ fill: 'rgba(255,255,255,0.04)', radius: 8 }}
                         />
                     </BarChart>
                 </ResponsiveContainer>

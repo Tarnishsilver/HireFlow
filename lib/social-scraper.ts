@@ -20,7 +20,7 @@ async function getBrowser() {
     if (IS_PRODUCTION) {
         // Vercel / Production Environment
         try {
-            const chromium = (await import('@sparticuz/chromium')).default;
+            const chromium = (await import('@sparticuz/chromium')).default as any;
             const puppeteerCore = (await import('puppeteer-core')).default;
             const { addExtra } = await import('puppeteer-extra');
             const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default;

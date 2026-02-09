@@ -102,8 +102,8 @@ async function main() {
 
     // Fetch mapped employees to link managers and create logs
     const allEmployees = await prisma.employee.findMany();
-    const aarav = allEmployees.find(e => e.email === 'aarav.sharma@company.com');
-    const rohan = allEmployees.find(e => e.email === 'rohan.verma@company.com'); // Reports to Aarav
+    const aarav = allEmployees.find((e: any) => e.email === 'aarav.sharma@company.com');
+    const rohan = allEmployees.find((e: any) => e.email === 'rohan.verma@company.com'); // Reports to Aarav
 
     if (aarav && rohan) {
         await prisma.employee.update({
