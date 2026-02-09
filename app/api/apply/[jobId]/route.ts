@@ -246,7 +246,6 @@ export async function POST(
                             profane_ratio: parseFloat(profaneRatio.toFixed(2)),
                             average_toxicity: parseFloat(avgToxicity.toFixed(2)),
                             harassment_risk: harassmentRisk,
-                            harassment_risk: harassmentRisk,
                             posts: analyzedPosts,
                             comments_analysis: null as any
                         };
