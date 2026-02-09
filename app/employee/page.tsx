@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from 'next/link';
 import {
     Search,
     Bell,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from '@/lib/auth/AuthContext';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { AddEmployeeModal } from "@/components/orchids/employee/AddEmployeeModal";
 
 // Local icon definition for UserClock (missing in some lucide versions)
 function UserClock({ className }: { className?: string }) {
@@ -67,7 +69,7 @@ function TopBar() {
 }
 
 // ─── Employee Header ─────────────────────────────────────────────────────
-function EmployeeHeader() {
+function EmployeeHeader({ setIsAddModalOpen }: { setIsAddModalOpen: (open: boolean) => void }) {
     return (
         <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -84,7 +86,10 @@ function EmployeeHeader() {
                     <Download className="w-4 h-4" />
                     Export
                 </button>
-                <button className="flex items-center gap-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl px-4 py-2.5 font-medium transition-colors">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl px-4 py-2.5 font-medium transition-colors"
+                >
                     <Plus className="w-4 h-4" />
                     Add Employee
                 </button>
@@ -230,9 +235,11 @@ function ManageEmployeesTab({ employees }: { employees: any[] }) {
                                 <span className="text-sm text-green-600 dark:text-green-400 font-medium">{emp.status}</span>
                                 {/* Actions */}
                                 <div className="flex items-center gap-2">
-                                    <button className="text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-border rounded-lg px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-accent">
-                                        See Details
-                                    </button>
+                                    <Link href={`/employee/${emp.id}`} className="block">
+                                        <button className="text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-border rounded-lg px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-accent">
+                                            See Details
+                                        </button>
+                                    </Link>
                                     <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                         <MoreVertical className="w-4 h-4" />
                                     </button>
@@ -479,8 +486,8 @@ function RequestTimeOffTab() {
                             {/* Status */}
                             <div>
                                 <span className={`text-[11px] font-medium rounded-full px-3 py-1 ${(row.status === 'Approved') ? "bg-green-100 text-green-700" :
-                                        (row.status === 'Pending') ? "bg-yellow-100 text-yellow-700" :
-                                            "bg-red-100 text-red-700"
+                                    (row.status === 'Pending') ? "bg-yellow-100 text-yellow-700" :
+                                        "bg-red-100 text-red-700"
                                     }`}>
                                     {row.status}
                                 </span>
@@ -506,6 +513,8 @@ export default function EmployeePage() {
     const [activeTab, setActiveTab] = useState("manage");
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         async function loadEmployees() {
@@ -523,7 +532,11 @@ export default function EmployeePage() {
             }
         }
         loadEmployees();
-    }, [user]);
+    }, [user, refreshTrigger]);
+
+    const handleEmployeeAdded = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
 
     if (authLoading || loading) {
         return (
@@ -538,12 +551,18 @@ export default function EmployeePage() {
             <div className="bg-gray-50/80 dark:bg-background min-h-full">
                 <div className="max-w-[1400px] mx-auto p-4 md:p-6 space-y-4">
                     <TopBar />
-                    <EmployeeHeader />
+                    <EmployeeHeader setIsAddModalOpen={setIsAddModalOpen} />
                     <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
                     {activeTab === "manage" && <ManageEmployeesTab employees={employees} />}
                     {activeTab === "orgchart" && <OrganizationChartTab />}
                     {activeTab === "timeoff" && <RequestTimeOffTab />}
+
+                    <AddEmployeeModal
+                        isOpen={isAddModalOpen}
+                        onClose={() => setIsAddModalOpen(false)}
+                        onEmployeeAdded={handleEmployeeAdded}
+                    />
                 </div>
             </div>
         </MainLayout>

@@ -195,11 +195,162 @@ model Employee {
 
   leaves    LeaveRequest[]
   work_logs WorkLog[]
+  performance_reviews PerformanceReview[]
+  payroll             Payroll[]
+  projects            EmployeeProject[]
+  
+  // Communication Relations
+  sent_messages     Message[] @relation("Sender")
+  received_messages Message[] @relation("Receiver")
+  notifications     Notification[]
+  read_receipts     ReadReceipt[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   @@map("employees")
+}
+
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  type        String   // "Company", "Department", "Role", "Individual"
+  target_id   String?  // ID of Dept/Role/User if applicable
+  priority    String   @default("Normal") // "Normal", "High", "Critical"
+  
+  author_id   String
+  // author      Employee @relation(fields: [author_id], references: [id]) // Optional: if we want to link to employee
+
+  read_receipts ReadReceipt[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  attachment  String?  // URL to file
+  tags        String[] // ["Payroll", "Legal", etc.]
+  
+  sender_id   String
+  sender      Employee @relation("Sender", fields: [sender_id], references: [id])
+
+  receiver_id String?  // Null if channel message
+  receiver    Employee? @relation("Receiver", fields: [receiver_id], references: [id])
+
+  channel_id  String?  // Null if direct message
+  // channel     Department? @relation(fields: [channel_id], references: [id]) // Optional: link to department as channel
+
+  read_receipts ReadReceipt[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("messages")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  title       String
+  message     String
+  type        String   // "System", "Leave", "Payroll", "Performance"
+  is_read     Boolean  @default(false)
+  link        String?  // Action link
+
+  employee_id String
+  employee    Employee @relation(fields: [employee_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+model ReadReceipt {
+  id              String   @id @default(uuid())
+  read_at         DateTime @default(now())
+
+  employee_id     String
+  employee        Employee @relation(fields: [employee_id], references: [id])
+
+  announcement_id String?
+  announcement    Announcement? @relation(fields: [announcement_id], references: [id])
+
+  message_id      String?
+  message         Message? @relation(fields: [message_id], references: [id])
+
+  @@unique([employee_id, announcement_id])
+  @@unique([employee_id, message_id])
+  @@map("read_receipts")
+}
+
+model PerformanceReview {
+  id        String   @id @default(uuid())
+  rating    Float    // 1-5
+  review_date DateTime
+  reviewer  String   // Name or ID of reviewer
+  comments  String?
+  kpis_assigned Int
+  kpis_achieved Int
+
+  employee_id String
+  employee    Employee @relation(fields: [employee_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("performance_reviews")
+}
+
+model Payroll {
+  id             String   @id @default(uuid())
+  salary         Float    // Monthly salary
+  effective_date DateTime
+  pay_frequency  String   // "Monthly", "Bi-weekly"
+  currency       String   @default("USD")
+  
+  employee_id String
+  employee    Employee @relation(fields: [employee_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("payroll")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  status      String   // "Active", "Completed", "On Hold"
+  start_date  DateTime
+  end_date    DateTime?
+
+  employees   EmployeeProject[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model EmployeeProject {
+  id          String   @id @default(uuid())
+  role        String   // "Developer", "Manager", etc.
+  joined_at   DateTime @default(now())
+
+  employee_id String
+  employee    Employee @relation(fields: [employee_id], references: [id])
+
+  project_id  String
+  project     Project  @relation(fields: [project_id], references: [id])
+
+  @@unique([employee_id, project_id])
+  @@map("employee_projects")
 }
 
 model LeaveRequest {

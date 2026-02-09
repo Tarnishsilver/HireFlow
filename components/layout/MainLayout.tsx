@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { Navbar } from '@/components/layout/Navbar';
+import { CopilotWidget } from '@/components/copilot/CopilotWidget';
 import { User } from 'firebase/auth';
 
 interface MainLayoutProps {
@@ -39,6 +40,7 @@ export const MainLayout = ({ children, user, onSignIn, onSignOut }: MainLayoutPr
                 <main className="flex-1 min-w-0 transition-all duration-300 ml-64">
                     {children}
                 </main>
+                <CopilotWidget />
             </div>
         );
     }
@@ -49,6 +51,7 @@ export const MainLayout = ({ children, user, onSignIn, onSignOut }: MainLayoutPr
             <main className="flex-1 w-full relative transition-all duration-300">
                 {children}
             </main>
+            <CopilotWidget />
         </div>
     );
 };
