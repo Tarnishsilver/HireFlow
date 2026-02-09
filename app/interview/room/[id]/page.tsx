@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { MOCK_QUESTIONS } from '@/lib/mock-data/questions';
 import { useInterviewStore } from '@/lib/store/useInterviewStore';
 import CheatingWarning from '@/components/interview/CheatingWarning';
-import { Mic, Video, Monitor, MoreVertical, SkipForward, CheckCircle, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+    Mic, Video, Monitor, MoreVertical, SkipForward, CheckCircle, Clock,
+    Users, VideoOff, MicOff, PhoneOff, MessageSquare, Settings, ChevronRight, Star, Send, Loader2, AlertCircle
+} from 'lucide-react';
 
 export default function InterviewRoom() {
     const router = useRouter();
